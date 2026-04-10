@@ -68,6 +68,21 @@ async def list_users(
     }
 
 
+@router.post("/fix-status")
+async def fix_status(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    """영업/정상 → 영업중 일괄 정규화"""
+    from sqlalchemy import update, text
+    from models.models import Business
+    result = await db.execute(
+        text("UPDATE businesses SET status = '영업중' WHERE status LIKE '%영업%'")
+    )
+    await db.commit()
+    return {"message": "영업상태 정규화 완료", "updated": result.rowcount}
+
+
 @router.post("/collect")
 async def trigger_collect(
     body: dict,

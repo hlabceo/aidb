@@ -1,7 +1,6 @@
-import json
-import re
 import io
-from fastapi import APIRouter, Depends, Query, Request
+from datetime import datetime, timedelta
+from fastapi import APIRouter, Depends, Query, Request, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,19 +16,55 @@ from routers.auth import get_current_user
 router = APIRouter(prefix="/search", tags=["search"])
 
 
-def mask_name(name: str) -> str:
-    """홍길동치킨 → 홍**치킨"""
-    if not name or len(name) <= 2:
-        return name[0] + "*" if name else "*"
-    return name[0] + "*" * (len(name) - 2) + name[-1]
+# ── 마스킹 함수 (서버사이드 - 개발자도구로 볼 수 없음) ──────────────
+def partial_name(name: str) -> str:
+    """홍길동치킨 → 홍●●● (첫 글자만 공개)"""
+    if not name:
+        return "●●●"
+    if len(name) <= 1:
+        return name + "●"
+    return name[0] + "●" * (len(name) - 1)
 
-def mask_field(value: str | None) -> str:
-    if not value:
-        return "***"
-    return "*" * min(len(value), 8)
+
+def partial_addr(addr: str | None) -> str:
+    """서울시 강남구 테헤란로 123 → 서울시 강남구 ●●● (시군구까지만 공개)"""
+    if not addr:
+        return "●●●"
+    parts = addr.strip().split()
+    if len(parts) <= 2:
+        return addr + " ●●●"
+    visible = " ".join(parts[:3])
+    return visible + " ●●●"
+
+
+def mask_tel(tel: str | None) -> str:
+    """전화번호 마스킹"""
+    if not tel or not tel.strip():
+        return ""
+    return "●●●-●●●●-●●●●"
+
+
+def get_point_cost(b: Business) -> int:
+    """전화번호 없으면 5P, 있으면 30P"""
+    if not b.tel or not b.tel.strip():
+        return 5
+    return settings.POINT_PER_VIEW
+
+
+def normalize_status(status: str | None) -> str:
+    """영업/정상 → 영업중 정규화"""
+    if not status:
+        return ""
+    if "영업" in status:
+        return "영업중"
+    return status
 
 
 def build_business_item(b: Business, revealed: bool, rank: int) -> dict:
+    has_tel = bool(b.tel and b.tel.strip())
+    point_cost = get_point_cost(b)
+    status = normalize_status(b.status)
+
     if revealed or rank <= settings.FREE_VIEW_COUNT:
         return {
             "id": str(b.id),
@@ -39,33 +74,67 @@ def build_business_item(b: Business, revealed: bool, rank: int) -> dict:
             "addr": b.addr,
             "road_addr": b.road_addr,
             "tel": b.tel,
-            "status": b.status,
+            "status": status,
             "open_date": str(b.open_date) if b.open_date else None,
             "sido": b.sido,
             "sigungu": b.sigungu,
             "masked": False,
+            "has_tel": has_tel,
+            "point_cost": point_cost,
         }
     return {
         "id": str(b.id),
         "rank": rank,
-        "bsn_nm": mask_name(b.bsn_nm),
-        "uptae_nm": mask_field(b.uptae_nm),
-        "addr": mask_field(b.addr),
-        "road_addr": mask_field(b.road_addr),
-        "tel": mask_field(b.tel),
-        "status": "***",
-        "open_date": None,
+        "bsn_nm": partial_name(b.bsn_nm),
+        "uptae_nm": b.uptae_nm,
+        "addr": partial_addr(b.addr),
+        "road_addr": partial_addr(b.road_addr),
+        "tel": mask_tel(b.tel),
+        "status": status,
+        "open_date": str(b.open_date) if b.open_date else None,
         "sido": b.sido,
         "sigungu": b.sigungu,
         "masked": True,
+        "has_tel": has_tel,
+        "point_cost": point_cost,
     }
 
 
+# ── 통계 ──────────────────────────────────────────────────────
+@router.get("/stats")
+async def get_stats(db: AsyncSession = Depends(get_db)):
+    """메인화면용 데이터 통계"""
+    now = datetime.now()
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    monday_start = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+    total = (await db.execute(select(func.count()).select_from(Business))).scalar()
+    this_month = (await db.execute(
+        select(func.count()).select_from(Business).where(Business.created_at >= month_start)
+    )).scalar()
+    this_week = (await db.execute(
+        select(func.count()).select_from(Business).where(Business.created_at >= monday_start)
+    )).scalar()
+    today_count = (await db.execute(
+        select(func.count()).select_from(Business).where(Business.created_at >= today_start)
+    )).scalar()
+
+    return {
+        "total": total,
+        "this_month": this_month,
+        "this_week": this_week,
+        "today": today_count,
+        "updated_at": now.strftime("%Y-%m-%d"),
+    }
+
+
+# ── 검색 ──────────────────────────────────────────────────────
 @router.get("")
 async def search(
-    q: str = Query(..., min_length=1, description="검색어"),
+    q: str = Query(..., min_length=1),
     page: int = Query(1, ge=1),
-    size: int = Query(20, ge=1, le=100),
+    size: int = Query(100, ge=1, le=1000),
     sido: str | None = None,
     sigungu: str | None = None,
     uptae: str | None = None,
@@ -73,12 +142,6 @@ async def search(
     request: Request = None,
     db: AsyncSession = Depends(get_db),
 ):
-    """
-    검색 API
-    - 비회원/회원 모두 사용 가능
-    - 1~3번은 전체 공개, 4번~는 마스킹
-    - 열람 이력 있는 항목은 마스킹 해제
-    """
     # 현재 사용자 확인 (옵셔널)
     token = request.headers.get("Authorization", "").replace("Bearer ", "") if request else None
     current_user: User | None = None
@@ -86,17 +149,13 @@ async def search(
 
     if token:
         try:
-            from routers.auth import get_current_user as gcu
-            from routers.auth import pwd_context
             from jose import jwt
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
             user_id = payload.get("sub")
             if user_id:
-                result = await db.execute(
-                    select(User).where(User.id == user_id)
-                )
+                import uuid
+                result = await db.execute(select(User).where(User.id == uuid.UUID(user_id)))
                 current_user = result.scalar_one_or_none()
-                # 이미 열람한 항목 조회
                 vl = await db.execute(
                     select(ViewLog.business_id).where(ViewLog.user_id == current_user.id)
                 )
@@ -104,11 +163,9 @@ async def search(
         except Exception:
             pass
 
-    # 검색 쿼리 빌드
     stmt = select(Business)
     conditions = []
 
-    # 검색어: 사업장명 OR 주소 트라이그램 유사도 검색
     conditions.append(
         or_(
             Business.bsn_nm.ilike(f"%{q}%"),
@@ -117,34 +174,33 @@ async def search(
         )
     )
 
-    if sido:
-        conditions.append(Business.sido == sido)
+    if sido and sido != "전국":
+        conditions.append(Business.sido.ilike(f"%{sido}%"))
     if sigungu:
-        conditions.append(Business.sigungu == sigungu)
+        conditions.append(Business.sigungu.ilike(f"%{sigungu}%"))
     if uptae:
         conditions.append(Business.uptae_nm.ilike(f"%{uptae}%"))
-    if status:
-        conditions.append(Business.status == status)
+    if status and status != "전체":
+        if status == "영업중":
+            conditions.append(or_(Business.status == "영업중", Business.status.ilike("%영업%")))
+        else:
+            conditions.append(Business.status == status)
 
     for cond in conditions:
         stmt = stmt.where(cond)
 
-    # 전체 카운트
     count_stmt = select(func.count()).select_from(stmt.subquery())
     total = (await db.execute(count_stmt)).scalar()
 
-    # 페이지네이션
     stmt = stmt.order_by(Business.bsn_nm).offset((page - 1) * size).limit(size)
     rows = (await db.execute(stmt)).scalars().all()
 
-    # 결과 조립
     items = []
     for i, b in enumerate(rows):
         rank = (page - 1) * size + i + 1
         revealed = str(b.id) in viewed_ids
         items.append(build_business_item(b, revealed, rank))
 
-    # 검색 로그 기록
     log = SearchLog(
         user_id=current_user.id if current_user else None,
         query=q,
@@ -154,29 +210,20 @@ async def search(
     db.add(log)
     await db.commit()
 
-    return {
-        "total": total,
-        "page": page,
-        "size": size,
-        "items": items,
-    }
+    return {"total": total, "page": page, "size": size, "items": items}
 
 
+# ── 열람 ──────────────────────────────────────────────────────
 @router.post("/reveal")
 async def reveal_items(
     body: dict,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """
-    선택한 항목 포인트 차감 후 열람
-    body: { "ids": ["uuid1", "uuid2", ...] }
-    """
     ids = body.get("ids", [])
     if not ids:
         return {"message": "선택된 항목이 없습니다", "revealed": []}
 
-    # 이미 열람한 항목 제외
     vl = await db.execute(
         select(ViewLog.business_id).where(
             ViewLog.user_id == current_user.id,
@@ -189,40 +236,32 @@ async def reveal_items(
     if not new_ids:
         return {"message": "이미 열람한 항목입니다", "revealed": list(already_viewed)}
 
-    required_points = len(new_ids) * settings.POINT_PER_VIEW
+    # 가게별 포인트 계산 (전화번호 없으면 5P)
+    new_bizs = (await db.execute(select(Business).where(Business.id.in_(new_ids)))).scalars().all()
+    required_points = sum(get_point_cost(b) for b in new_bizs)
+
     if current_user.points < required_points:
-        from fastapi import HTTPException
         raise HTTPException(
             status_code=402,
             detail=f"포인트가 부족합니다. 필요: {required_points}P, 보유: {current_user.points}P",
         )
 
-    # 포인트 차감
     current_user.points -= required_points
-
-    from models.models import PointLog
-    point_log = PointLog(
+    db.add(PointLog(
         user_id=current_user.id,
         type="use",
         amount=-required_points,
         balance=current_user.points,
-        description=f"{len(new_ids)}건 업소 정보 열람",
-    )
-    db.add(point_log)
+        description=f"{len(new_ids)}건 가게 정보 열람",
+    ))
 
-    # 열람 기록 저장
-    for bid in new_ids:
-        vl = ViewLog(user_id=current_user.id, business_id=bid, points_used=settings.POINT_PER_VIEW)
-        db.add(vl)
+    for b in new_bizs:
+        db.add(ViewLog(user_id=current_user.id, business_id=b.id, points_used=get_point_cost(b)))
 
     await db.commit()
 
-    # 실제 데이터 반환
-    result = await db.execute(select(Business).where(Business.id.in_(new_ids)))
-    businesses = result.scalars().all()
-
     revealed_data = []
-    for b in businesses:
+    for b in new_bizs:
         revealed_data.append({
             "id": str(b.id),
             "bsn_nm": b.bsn_nm,
@@ -230,8 +269,9 @@ async def reveal_items(
             "addr": b.addr,
             "road_addr": b.road_addr,
             "tel": b.tel,
-            "status": b.status,
+            "status": normalize_status(b.status),
             "open_date": str(b.open_date) if b.open_date else None,
+            "has_tel": bool(b.tel and b.tel.strip()),
         })
 
     return {
@@ -242,21 +282,17 @@ async def reveal_items(
     }
 
 
+# ── 엑셀 다운로드 ─────────────────────────────────────────────
 @router.post("/excel")
 async def download_excel(
     body: dict,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """
-    선택 항목 포인트 차감 후 엑셀 다운로드
-    body: { "ids": ["uuid1", ...] }
-    """
     ids = body.get("ids", [])
     if not ids:
-        raise __import__("fastapi").HTTPException(status_code=400, detail="선택된 항목이 없습니다")
+        raise HTTPException(status_code=400, detail="선택된 항목이 없습니다")
 
-    # 이미 열람한 항목 제외 (무료 재다운로드)
     vl_res = await db.execute(
         select(ViewLog.business_id).where(
             ViewLog.user_id == current_user.id,
@@ -266,11 +302,12 @@ async def download_excel(
     already_viewed = {str(row[0]) for row in vl_res.fetchall()}
     new_ids = [i for i in ids if i not in already_viewed]
 
-    # 신규 항목 포인트 차감
     if new_ids:
-        required_points = len(new_ids) * settings.POINT_PER_VIEW
+        new_bizs = (await db.execute(select(Business).where(Business.id.in_(new_ids)))).scalars().all()
+        required_points = sum(get_point_cost(b) for b in new_bizs)
+
         if current_user.points < required_points:
-            raise __import__("fastapi").HTTPException(
+            raise HTTPException(
                 status_code=402,
                 detail=f"포인트 부족. 필요: {required_points}P, 보유: {current_user.points}P",
             )
@@ -282,23 +319,17 @@ async def download_excel(
             balance=current_user.points,
             description=f"{len(new_ids)}건 엑셀 다운로드",
         ))
-        for bid in new_ids:
-            db.add(ViewLog(
-                user_id=current_user.id,
-                business_id=bid,
-                points_used=settings.POINT_PER_VIEW,
-            ))
+        for b in new_bizs:
+            db.add(ViewLog(user_id=current_user.id, business_id=b.id, points_used=get_point_cost(b)))
         await db.commit()
 
-    # 전체 데이터 조회 (기존 열람 + 신규)
     all_ids = list(set(ids))
     result = await db.execute(select(Business).where(Business.id.in_(all_ids)))
     businesses = result.scalars().all()
 
-    # 엑셀 생성
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = "업소정보"
+    ws.title = "가게정보"
 
     header_fill = PatternFill(start_color="4F46E5", end_color="4F46E5", fill_type="solid")
     header_font = Font(bold=True, color="FFFFFF", size=11)
@@ -308,7 +339,7 @@ async def download_excel(
         top=Side(style="thin"), bottom=Side(style="thin"),
     )
 
-    headers = ["순번", "상호명", "업종", "영업상태", "도로명주소", "주소", "전화번호", "개업일", "시도", "시군구"]
+    headers = ["순번", "상호명", "업종", "영업상태", "도로명주소", "주소", "전화번호", "개업일자", "시도", "시군구"]
     col_widths = [6, 25, 15, 10, 40, 40, 16, 12, 8, 10]
 
     for col_idx, (h, w) in enumerate(zip(headers, col_widths), 1):
@@ -326,7 +357,7 @@ async def download_excel(
             row_idx - 1,
             b.bsn_nm,
             b.uptae_nm or "",
-            b.status or "",
+            normalize_status(b.status),
             b.road_addr or "",
             b.addr or "",
             b.tel or "",
@@ -348,7 +379,7 @@ async def download_excel(
     buf.seek(0)
 
     from urllib.parse import quote
-    filename = quote("AIDB_업소정보.xlsx")
+    filename = quote("AIDB_가게정보.xlsx")
 
     return StreamingResponse(
         buf,

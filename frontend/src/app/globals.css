@@ -11,6 +11,10 @@
   box-sizing: border-box;
 }
 
+button, a, [role="button"], label[style*="cursor"], div[onClick], input[type="checkbox"], input[type="radio"] {
+  cursor: pointer;
+}
+
 html, body {
   margin: 0;
   padding: 0;

@@ -98,7 +98,7 @@ def map_row_to_business(row: dict, svc_nm: str) -> Business | None:
         tel           = tel,
         lat           = float(row.get("LAT") or 0) or None,
         lng           = float(row.get("LON") or 0) or None,
-        status        = status_nm or status_cd,
+        status        = "영업중" if "영업" in (status_nm or status_cd) else (status_nm or status_cd or "알수없음"),
         status_code   = status_cd,
         open_date     = open_date,
         close_date    = close_date,

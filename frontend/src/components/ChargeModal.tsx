@@ -83,7 +83,7 @@ export default function ChargeModal({ onClose }: Props) {
         <div style={{ display: "flex", alignItems: "flex-start", gap: 8, background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.2)", borderRadius: 12, padding: "10px 12px", marginBottom: 18 }}>
           <Zap size={14} color="#818cf8" style={{ flexShrink: 0, marginTop: 2 }} />
           <p style={{ fontSize: 12, color: "#a5b4fc", margin: 0, lineHeight: 1.6 }}>
-            1포인트 = 1원 · 업소 정보 1건 열람 시 <strong>30P</strong> 차감
+            1포인트 = 1원 · 가게 정보 1건 열람 시 <strong>30P</strong> (전화번호없음 <strong>5P</strong>) 차감
             <br /><span style={{ color: "#6b7280" }}>※ 나이스페이먼츠 연동 후 실결제 가능</span>
           </p>
         </div>
