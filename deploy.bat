@@ -20,7 +20,7 @@ echo [DONE] git push OK
 echo.
 
 echo [2/3] NAS build...
-ssh hlabsoft@192.168.0.111 "cd /volume1/docker/aidb && curl -sL https://github.com/hlabceo/aidb/archive/refs/heads/master.tar.gz | tar xz --strip-components=1 && sudo /usr/local/bin/docker-compose build --no-cache"
+ssh hlabsoft@192.168.0.111 "cd /volume1/docker/aidb && curl -sL https://github.com/hlabceo/aidb/archive/refs/heads/master.tar.gz | tar xz --strip-components=1 && sudo /usr/local/bin/docker-compose build"
 if %errorlevel% neq 0 (
     echo [ERROR] NAS build failed
     pause
