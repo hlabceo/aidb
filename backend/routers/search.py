@@ -1,13 +1,17 @@
 import json
 import re
+import io
 from fastapi import APIRouter, Depends, Query, Request
-from sqlalchemy import select, func, or_, text
+from fastapi.responses import StreamingResponse
+from sqlalchemy import select, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
-import redis.asyncio as aioredis
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.utils import get_column_letter
 
 from config import settings
 from database import get_db
-from models.models import Business, SearchLog, ViewLog, User
+from models.models import Business, SearchLog, ViewLog, User, PointLog
 from routers.auth import get_current_user
 
 router = APIRouter(prefix="/search", tags=["search"])
@@ -236,3 +240,118 @@ async def reveal_items(
         "remaining_points": current_user.points,
         "revealed": revealed_data,
     }
+
+
+@router.post("/excel")
+async def download_excel(
+    body: dict,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    선택 항목 포인트 차감 후 엑셀 다운로드
+    body: { "ids": ["uuid1", ...] }
+    """
+    ids = body.get("ids", [])
+    if not ids:
+        raise __import__("fastapi").HTTPException(status_code=400, detail="선택된 항목이 없습니다")
+
+    # 이미 열람한 항목 제외 (무료 재다운로드)
+    vl_res = await db.execute(
+        select(ViewLog.business_id).where(
+            ViewLog.user_id == current_user.id,
+            ViewLog.business_id.in_(ids),
+        )
+    )
+    already_viewed = {str(row[0]) for row in vl_res.fetchall()}
+    new_ids = [i for i in ids if i not in already_viewed]
+
+    # 신규 항목 포인트 차감
+    if new_ids:
+        required_points = len(new_ids) * settings.POINT_PER_VIEW
+        if current_user.points < required_points:
+            raise __import__("fastapi").HTTPException(
+                status_code=402,
+                detail=f"포인트 부족. 필요: {required_points}P, 보유: {current_user.points}P",
+            )
+        current_user.points -= required_points
+        db.add(PointLog(
+            user_id=current_user.id,
+            type="use",
+            amount=-required_points,
+            balance=current_user.points,
+            description=f"{len(new_ids)}건 엑셀 다운로드",
+        ))
+        for bid in new_ids:
+            db.add(ViewLog(
+                user_id=current_user.id,
+                business_id=bid,
+                points_used=settings.POINT_PER_VIEW,
+            ))
+        await db.commit()
+
+    # 전체 데이터 조회 (기존 열람 + 신규)
+    all_ids = list(set(ids))
+    result = await db.execute(select(Business).where(Business.id.in_(all_ids)))
+    businesses = result.scalars().all()
+
+    # 엑셀 생성
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "업소정보"
+
+    header_fill = PatternFill(start_color="4F46E5", end_color="4F46E5", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF", size=11)
+    center = Alignment(horizontal="center", vertical="center")
+    thin = Border(
+        left=Side(style="thin"), right=Side(style="thin"),
+        top=Side(style="thin"), bottom=Side(style="thin"),
+    )
+
+    headers = ["순번", "상호명", "업종", "영업상태", "도로명주소", "주소", "전화번호", "개업일", "시도", "시군구"]
+    col_widths = [6, 25, 15, 10, 40, 40, 16, 12, 8, 10]
+
+    for col_idx, (h, w) in enumerate(zip(headers, col_widths), 1):
+        cell = ws.cell(row=1, column=col_idx, value=h)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = center
+        cell.border = thin
+        ws.column_dimensions[get_column_letter(col_idx)].width = w
+
+    ws.row_dimensions[1].height = 22
+
+    for row_idx, b in enumerate(businesses, 2):
+        row_data = [
+            row_idx - 1,
+            b.bsn_nm,
+            b.uptae_nm or "",
+            b.status or "",
+            b.road_addr or "",
+            b.addr or "",
+            b.tel or "",
+            str(b.open_date) if b.open_date else "",
+            b.sido or "",
+            b.sigungu or "",
+        ]
+        for col_idx, val in enumerate(row_data, 1):
+            cell = ws.cell(row=row_idx, column=col_idx, value=val)
+            cell.border = thin
+            cell.alignment = Alignment(vertical="center")
+            if col_idx == 1:
+                cell.alignment = center
+
+    ws.freeze_panes = "A2"
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+
+    from urllib.parse import quote
+    filename = quote("AIDB_업소정보.xlsx")
+
+    return StreamingResponse(
+        buf,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename*=UTF-8''{filename}"},
+    )

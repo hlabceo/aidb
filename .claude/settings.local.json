@@ -3,7 +3,13 @@
     "allow": [
       "Bash(npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --yes)",
       "Bash(npm install:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(xargs grep:*)",
+      "Read(//c/Users/HLAB/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/b2458093-d4f3-40df-bc43-d0f6dc93507e/0cdb1e34-be82-4328-9836-7aee9681c8bb/skills/xlsx/**)",
+      "Bash(python)",
+      "Bash(pip install:*)",
+      "Bash(python -m pip install pandas openpyxl --quiet)",
+      "mcp__Claude_Preview__preview_start"
     ]
   }
 }

@@ -6,14 +6,16 @@ import Link from "next/link";
 import { Sparkles, Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
 export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuthStore();
-  const [email, setEmail] = useState("");
+  const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
-  const [showPw, setShowPw] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [showPw, setShowPw]     = useState(false);
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,84 +31,125 @@ export default function LoginPage() {
     }
   };
 
+  const handleSocialLogin = (provider: "naver" | "google") => {
+    window.location.href = `${API_URL}/auth/social/${provider}`;
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden">
+    <div style={{ minHeight: "100vh", background: "#0a0a0f", display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 16px", position: "relative", overflow: "hidden" }}>
       {/* 배경 */}
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-40 -left-40 w-[400px] h-[400px] rounded-full bg-indigo-900/20 blur-[100px]" />
-        <div className="absolute -bottom-40 -right-40 w-[400px] h-[400px] rounded-full bg-purple-900/20 blur-[100px]" />
+      <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+        <div style={{ position: "absolute", top: -160, left: -160, width: 400, height: 400, borderRadius: "50%", background: "radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%)" }} />
+        <div style={{ position: "absolute", bottom: -160, right: -160, width: 400, height: 400, borderRadius: "50%", background: "radial-gradient(circle, rgba(139,92,246,0.12) 0%, transparent 70%)" }} />
       </div>
 
-      <div className="relative w-full max-w-md">
+      <div style={{ position: "relative", width: "100%", maxWidth: 420 }}>
         {/* 로고 */}
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2 mb-6">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-              <Sparkles size={18} className="text-white" />
+        <div style={{ textAlign: "center", marginBottom: 28 }}>
+          <Link href="/" style={{ display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none", marginBottom: 16 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 12, background: "linear-gradient(135deg, #6366f1, #9333ea)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Sparkles size={18} color="white" />
             </div>
-            <span className="text-xl font-bold gradient-text">AIDB</span>
+            <span style={{ fontSize: 18, fontWeight: 700, background: "linear-gradient(135deg, #818cf8, #c084fc)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>AIDB</span>
           </Link>
-          <h1 className="text-2xl font-bold text-white">로그인</h1>
-          <p className="text-gray-400 text-sm mt-1">계속하려면 로그인하세요</p>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: "white", margin: 0 }}>로그인</h1>
+          <p style={{ color: "#6b7280", fontSize: 13, marginTop: 4 }}>계속하려면 로그인하세요</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="glass rounded-2xl p-6 flex flex-col gap-4">
+        {/* 소셜 로그인 */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 18 }}>
+          {/* 네이버 */}
+          <button onClick={() => handleSocialLogin("naver")}
+            style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, background: "#03C75A", border: "none", borderRadius: 14, padding: "13px 0", fontSize: 14, fontWeight: 600, color: "white", cursor: "pointer", fontFamily: "inherit", transition: "opacity 0.2s" }}
+            onMouseEnter={e => (e.currentTarget.style.opacity = "0.9")}
+            onMouseLeave={e => (e.currentTarget.style.opacity = "1")}>
+            <NaverIcon />
+            네이버로 로그인
+          </button>
+
+          {/* 구글 */}
+          <button onClick={() => handleSocialLogin("google")}
+            style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, background: "white", border: "1px solid rgba(0,0,0,0.12)", borderRadius: 14, padding: "13px 0", fontSize: 14, fontWeight: 600, color: "#374151", cursor: "pointer", fontFamily: "inherit", transition: "opacity 0.2s" }}
+            onMouseEnter={e => (e.currentTarget.style.background = "#f9fafb")}
+            onMouseLeave={e => (e.currentTarget.style.background = "white")}>
+            <GoogleIcon />
+            구글로 로그인
+          </button>
+        </div>
+
+        {/* 구분선 */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
+          <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.08)" }} />
+          <span style={{ fontSize: 12, color: "#4b5563" }}>또는 이메일로 로그인</span>
+          <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.08)" }} />
+        </div>
+
+        {/* 이메일 로그인 폼 */}
+        <form onSubmit={handleSubmit} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, padding: 24, display: "flex", flexDirection: "column", gap: 14 }}>
+
           {/* 이메일 */}
           <div>
-            <label className="text-xs text-gray-400 mb-1.5 block">이메일</label>
-            <div className="relative">
-              <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-gray-500 outline-none focus:border-indigo-500/60 transition-colors"
+            <label style={{ fontSize: 12, color: "#9ca3af", display: "block", marginBottom: 6 }}>이메일</label>
+            <div style={{ position: "relative", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12 }}>
+              <Mail size={15} color="#6b7280" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+              <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@example.com"
-              />
+                style={{ width: "100%", background: "transparent", border: "none", outline: "none", paddingTop: 12, paddingBottom: 12, paddingLeft: 38, paddingRight: 14, fontSize: 14, color: "white", fontFamily: "inherit" }} />
             </div>
           </div>
 
           {/* 비밀번호 */}
           <div>
-            <label className="text-xs text-gray-400 mb-1.5 block">비밀번호</label>
-            <div className="relative">
-              <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
-              <input
-                type={showPw ? "text" : "password"}
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-10 py-3 text-sm text-white placeholder-gray-500 outline-none focus:border-indigo-500/60 transition-colors"
+            <label style={{ fontSize: 12, color: "#9ca3af", display: "block", marginBottom: 6 }}>비밀번호</label>
+            <div style={{ position: "relative", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12 }}>
+              <Lock size={15} color="#6b7280" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+              <input type={showPw ? "text" : "password"} required value={password} onChange={(e) => setPassword(e.target.value)}
                 placeholder="비밀번호 입력"
-              />
-              <button type="button" onClick={() => setShowPw((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300">
+                style={{ width: "100%", background: "transparent", border: "none", outline: "none", paddingTop: 12, paddingBottom: 12, paddingLeft: 38, paddingRight: 42, fontSize: 14, color: "white", fontFamily: "inherit" }} />
+              <button type="button" onClick={() => setShowPw(v => !v)}
+                style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#6b7280", display: "flex" }}>
                 {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
               </button>
             </div>
           </div>
 
           {error && (
-            <p className="text-sm text-red-400 bg-red-500/10 rounded-lg px-3 py-2">{error}</p>
+            <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 10, padding: "8px 12px", fontSize: 13, color: "#fca5a5" }}>
+              {error}
+            </div>
           )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 disabled:opacity-60 text-white py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all active:scale-95 mt-1"
-          >
-            {loading ? <Loader2 size={16} className="animate-spin" /> : null}
+          <button type="submit" disabled={loading}
+            style={{ width: "100%", background: "linear-gradient(135deg, #4f46e5, #9333ea)", border: "none", color: "white", padding: "14px 0", borderRadius: 14, fontSize: 15, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, opacity: loading ? 0.7 : 1, transition: "opacity 0.2s", fontFamily: "inherit" }}>
+            {loading && <Loader2 size={16} className="animate-spin" />}
             로그인
           </button>
 
-          <p className="text-center text-sm text-gray-500">
+          <p style={{ textAlign: "center", fontSize: 13, color: "#6b7280", margin: 0 }}>
             계정이 없으신가요?{" "}
-            <Link href="/auth/signup" className="text-indigo-400 hover:text-indigo-300">
-              회원가입
-            </Link>
+            <Link href="/auth/signup" style={{ color: "#818cf8", textDecoration: "none" }}>회원가입</Link>
           </p>
         </form>
       </div>
     </div>
+  );
+}
+
+function NaverIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
+      <path d="M16.273 12.845L7.376 0H0v24h7.727V11.155L16.624 24H24V0h-7.727z" />
+    </svg>
+  );
+}
+
+function GoogleIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 48 48">
+      <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+      <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+      <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+      <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+    </svg>
   );
 }

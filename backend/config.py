@@ -17,4 +17,11 @@ class Settings(BaseSettings):
     DATA_GO_KR_API_KEY: str = ""
     DATA_GO_KR_BASE_URL: str = "https://apis.data.go.kr/1741000"
 
+    # 소셜 로그인
+    NAVER_CLIENT_ID: str = ""
+    NAVER_CLIENT_SECRET: str = ""
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    SOCIAL_REDIRECT_BASE: str = "http://192.168.0.111:8000"
+
 settings = Settings()
