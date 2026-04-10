@@ -124,21 +124,28 @@ export default function HomePage() {
 
           {/* 실시간 통계 배너 */}
           {stats && (
-            <div style={{ marginTop: 28, width: "100%", background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.15)", borderRadius: 16, padding: "14px 20px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
-                <RefreshCw size={13} color="#818cf8" />
-                <span style={{ fontSize: 12, color: "#818cf8", fontWeight: 600 }}>{stats.updated_at} 업데이트!</span>
+            <div style={{ marginTop: 32, width: "100%", borderRadius: 20, overflow: "hidden", position: "relative", background: "linear-gradient(135deg, rgba(79,70,229,0.18) 0%, rgba(147,51,234,0.14) 50%, rgba(56,189,248,0.1) 100%)", border: "1px solid rgba(99,102,241,0.25)" }}>
+              {/* 상단 헤더 */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "14px 20px 10px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                <RefreshCw size={14} color="#818cf8" />
+                <span style={{ fontSize: 13, color: "#a5b4fc", fontWeight: 700, letterSpacing: "0.5px" }}>
+                  🔄 {stats.updated_at} 기준 실시간 데이터
+                </span>
               </div>
-              <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
+              {/* 4분할 통계 */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)" }}>
                 {[
-                  { label: "전체 데이터", val: stats.total },
-                  { label: "이번달 신규", val: stats.this_month },
-                  { label: "이번주 신규", val: stats.this_week },
-                  { label: "오늘 신규", val: stats.today },
-                ].map(({ label, val }) => (
-                  <div key={label} style={{ textAlign: "center" }}>
-                    <div style={{ fontSize: 18, fontWeight: 700, color: "white" }}>{val.toLocaleString()}<span style={{ fontSize: 11, color: "#6b7280", marginLeft: 2 }}>건</span></div>
-                    <div style={{ fontSize: 11, color: "#6b7280" }}>{label}</div>
+                  { label: "전체 데이터", val: stats.total, color: "#818cf8", bg: "rgba(99,102,241,0.08)" },
+                  { label: "이번달 신규", val: stats.this_month, color: "#34d399", bg: "rgba(52,211,153,0.06)" },
+                  { label: "이번주 신규", val: stats.this_week, color: "#60a5fa", bg: "rgba(96,165,250,0.06)" },
+                  { label: "오늘 신규", val: stats.today, color: "#f472b6", bg: "rgba(244,114,182,0.06)" },
+                ].map(({ label, val, color, bg }, i) => (
+                  <div key={label} style={{ padding: "18px 12px", textAlign: "center", background: bg, borderRight: i < 3 ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
+                    <div style={{ fontSize: "clamp(1.4rem, 3vw, 2rem)", fontWeight: 800, color, lineHeight: 1.1, marginBottom: 4 }}>
+                      {val.toLocaleString()}
+                      <span style={{ fontSize: "clamp(0.65rem, 1.5vw, 0.8rem)", color: "rgba(255,255,255,0.35)", marginLeft: 3, fontWeight: 500 }}>건</span>
+                    </div>
+                    <div style={{ fontSize: "clamp(0.65rem, 1.5vw, 0.75rem)", color: "rgba(255,255,255,0.45)", fontWeight: 500 }}>{label}</div>
                   </div>
                 ))}
               </div>
