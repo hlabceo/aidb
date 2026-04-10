@@ -21,7 +21,6 @@ const TERMS_LIST: { key: TermsKey; label: string; required: boolean }[] = [
 
 export default function SignupPage() {
   const router = useRouter();
-  const { signup } = useAuthStore();
 
   const [form, setForm] = useState({
     name: "", email: "", password: "", passwordConfirm: "", phone: "",
@@ -94,7 +93,18 @@ export default function SignupPage() {
     setError("");
     setLoading(true);
     try {
-      await signup(form.email, form.password, form.name, form.phone);
+      const { data } = await api.post("/auth/signup", {
+        email: form.email,
+        password: form.password,
+        name: form.name,
+        phone: form.phone,
+        agreed_terms: agreed.terms,
+        agreed_finance: agreed.finance,
+        agreed_privacy: agreed.privacy,
+        agreed_marketing: agreed.marketing,
+      });
+      localStorage.setItem("access_token", data.access_token);
+      useAuthStore.setState({ user: data.user, token: data.access_token });
       router.push("/");
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
