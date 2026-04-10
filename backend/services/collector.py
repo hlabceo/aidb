@@ -1,10 +1,12 @@
 """
-공공데이터포털 지방행정 인허가정보 수집 스크립트
-새 API: https://apis.data.go.kr/1741000/{업종명}/info
+공공데이터포털 소상공인시장진흥공단 상가업소정보 수집기
+API: https://apis.data.go.kr/B553077/api/open/sdsc2/storeListInAdmi/v2
 
-사용법:
-  python services/collector.py --svc 일반음식점 --max 10000
-  python services/collector.py --svc all --max 50000
+환경변수: DATA_GO_KR_API_KEY (Decoding 키 사용 - httpx가 자동 URL인코딩)
+
+사용법 (직접 실행):
+  python services/collector.py --sido 서울 --max 10000
+  python services/collector.py --sido all --max 5000
 """
 import asyncio
 import argparse
@@ -12,55 +14,24 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import aiohttp
+import httpx
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy import select
 
 from config import settings
 from models.models import Business
 
-# ── 195종 업종 목록 (주요 업종) ──────────────────────────────
-SERVICE_MAP = {
-    "일반음식점":    "general_restaurants",
-    "휴게음식점":    "rest_restaurants",
-    "제과점":       "bakeries",
-    "미용업":       "beauty_salons",
-    "이용업":       "barber_shops",
-    "세탁업":       "laundries",
-    "목욕장업":     "bathhouses",
-    "노래연습장":   "singing_practice_rooms",
-    "PC방":        "internet_computer_game_providing_businesses",
-    "약국":         "pharmacies",
-    "의원":         "clinics",
-    "병원":         "hospitals",
-    "치과의원":     "dental_clinics",
-    "한의원":       "oriental_medicine_clinics",
-    "안경점":       "optical_shops",
-    "편의점":       "convenience_stores",
-    "숙박업":       "lodging_businesses",
-    "공중위생":     "public_health_businesses",
+# ── 시도 코드 매핑 ──────────────────────────────────────────
+SIDO_CODES = {
+    "서울": "11", "부산": "26", "대구": "27", "인천": "28",
+    "광주": "29", "대전": "30", "울산": "31", "세종": "36",
+    "경기": "41", "강원": "42", "충북": "43", "충남": "44",
+    "전북": "45", "전남": "46", "경북": "47", "경남": "48",
+    "제주": "50",
 }
 
-BASE_URL = "https://apis.data.go.kr/1741000"
-
-
-def parse_status(code: str | None) -> str:
-    mapping = {"01": "영업", "02": "폐업", "03": "휴업", "04": "취소", "05": "만료"}
-    return mapping.get(code or "", code or "알수없음")
-
-
-def mask_name(name: str) -> str:
-    if not name or len(name) <= 2:
-        return name[0] + "*" if name else "*"
-    return name[0] + "*" * (len(name) - 2) + name[-1]
-
-
-def extract_sido_sigungu(addr: str) -> tuple[str, str]:
-    if not addr:
-        return "", ""
-    parts = addr.strip().split()
-    sido = parts[0] if parts else ""
-    sigungu = parts[1] if len(parts) > 1 else ""
-    return sido, sigungu
+# 소상공인시장진흥공단 상가업소정보 API
+BASE_URL = "https://apis.data.go.kr/B553077/api/open/sdsc2/storeListInAdmi/v2"
 
 
 def parse_date(val: str | None):
@@ -73,110 +44,153 @@ def parse_date(val: str | None):
         return None
 
 
-async def fetch_page(session: aiohttp.ClientSession, svc_path: str, page: int, size: int = 100) -> dict:
-    url = f"{BASE_URL}/{svc_path}/info"
+def mask_name(name: str) -> str:
+    if not name or len(name) <= 2:
+        return name[0] + "*" if name else "*"
+    return name[0] + "*" * (len(name) - 2) + name[-1]
+
+
+async def fetch_page(
+    client: httpx.AsyncClient,
+    sido_code: str,
+    page: int,
+    num_rows: int = 1000,
+) -> dict:
+    """
+    소상공인 상가업소 API 1페이지 호출
+    - serviceKey: Decoding 키 그대로 사용 (httpx가 자동 URL인코딩)
+    - divId=ctprvnCd: 시도 기준 조회
+    - key: 시도 코드 (11=서울, 26=부산 ...)
+    """
     params = {
         "serviceKey": settings.DATA_GO_KR_API_KEY,
         "pageNo": page,
-        "numOfRows": size,
+        "numOfRows": num_rows,
+        "type": "json",
+        "divId": "ctprvnCd",
+        "key": sido_code,
     }
-    async with session.get(url, params=params, timeout=aiohttp.ClientTimeout(total=30)) as resp:
-        return await resp.json(content_type=None)
+    resp = await client.get(BASE_URL, params=params, timeout=30.0)
+    resp.raise_for_status()
+    return resp.json()
 
 
-async def collect(svc_name: str, svc_path: str, max_records: int = 100000):
+async def save_page(session: AsyncSession, rows: list, sido_nm: str) -> int:
+    """파싱 후 DB 저장. 저장된 건수 반환"""
+    saved = 0
+    for row in rows:
+        bsn_nm = row.get("bizesNm") or ""
+        if not bsn_nm:
+            continue
+
+        # 주소에서 시도/시군구 추출
+        addr = row.get("lnoAdr") or row.get("rdnAdr") or ""
+        road_addr = row.get("rdnAdr") or ""
+        sido = row.get("ctprvnNm") or sido_nm
+        sigungu = row.get("signguNm") or ""
+
+        biz = Business(
+            opn_svc_id=row.get("bizesNo"),
+            opn_svc_nm=row.get("indsLclsNm") or row.get("indsSclsNm") or "",
+            bsn_nm=bsn_nm,
+            bsn_nm_masked=mask_name(bsn_nm),
+            uptae_nm=row.get("indsSclsNm") or row.get("indsLclsNm") or "",
+            addr=addr,
+            road_addr=road_addr,
+            zip_cd=None,
+            tel=row.get("telNo") or "",
+            lat=float(row.get("lat", 0) or 0) or None,
+            lng=float(row.get("lon", 0) or 0) or None,
+            status=row.get("bizesSttusCd") or "영업",
+            status_code=row.get("bizesSttusCd") or "",
+            open_date=None,
+            close_date=None,
+            sido=sido,
+            sigungu=sigungu,
+            raw_data=row,
+        )
+        session.add(biz)
+        saved += 1
+
+    await session.commit()
+    return saved
+
+
+async def collect(sido_nm: str, max_records: int = 10000) -> dict:
+    """
+    특정 시도의 상가업소 데이터를 수집하여 DB에 저장
+    Returns: {"sido": ..., "saved": ..., "pages": ...}
+    """
+    sido_code = SIDO_CODES.get(sido_nm)
+    if not sido_code:
+        return {"error": f"알 수 없는 시도명: {sido_nm}. 가능한 값: {list(SIDO_CODES.keys())}"}
+
+    if not settings.DATA_GO_KR_API_KEY:
+        return {"error": "DATA_GO_KR_API_KEY 환경변수가 설정되지 않았습니다"}
+
     engine = create_async_engine(settings.DATABASE_URL, echo=False)
     Session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
     print(f"\n{'='*55}")
-    print(f" 수집 시작: {svc_name}  ({BASE_URL}/{svc_path}/info)")
+    print(f" 수집 시작: {sido_nm} (코드: {sido_code})")
+    print(f" API: {BASE_URL}")
+    print(f" 최대: {max_records:,}건")
     print(f"{'='*55}")
 
-    async with aiohttp.ClientSession() as http:
-        page = 1
-        total_saved = 0
+    total_saved = 0
+    page = 1
 
+    async with httpx.AsyncClient() as http:
         while total_saved < max_records:
             try:
-                data = await fetch_page(http, svc_path, page)
+                data = await fetch_page(http, sido_code, page)
             except Exception as e:
                 print(f"  [오류] 페이지 {page} 수집 실패: {e}")
                 break
 
-            # 응답 파싱 — 공공데이터포털 공통 응답 구조
-            body = data.get("response", {}).get("body", {})
-            items = body.get("items", {})
+            # 응답 파싱
+            body = data.get("body") or data.get("response", {}).get("body", {})
+            items = body.get("items") if isinstance(body, dict) else []
+
             if not items:
-                print(f"  [완료] 데이터 없음 (page {page})")
+                print(f"  [완료] 더 이상 데이터 없음 (page {page})")
                 break
 
-            rows = items.get("item", [])
+            rows = items if isinstance(items, list) else items.get("item", [])
             if isinstance(rows, dict):
-                rows = [rows]  # 단건일 때 dict로 오는 경우 처리
+                rows = [rows]
             if not rows:
                 break
 
             async with Session() as db:
-                for row in rows:
-                    # 새 API 필드명 매핑
-                    bsn_nm   = row.get("BPLC_NM") or row.get("bplcNm") or ""
-                    uptae_nm = row.get("UPTAE_NM") or row.get("uptaeNm") or ""
-                    addr     = row.get("RDNWHL_ADDR") or row.get("rdnwhlAddr") or \
-                               row.get("SITE_WHL_ADDR") or row.get("siteWhlAddr") or ""
-                    tel      = row.get("SITE_TEL") or row.get("siteTel") or ""
-                    status_cd = row.get("SALS_STTS_CD") or row.get("trdStateGbn") or ""
-                    open_ymd  = row.get("LCPMT_YMD") or row.get("apvPermYmd") or ""
-                    close_ymd = row.get("CLSBIZ_YMD") or row.get("dcbYmd") or ""
+                cnt = await save_page(db, rows, sido_nm)
+                total_saved += cnt
 
-                    sido, sigungu = extract_sido_sigungu(addr)
+            total_count = body.get("totalCount", "?") if isinstance(body, dict) else "?"
+            print(f"  page {page:4d} → 누적 {total_saved:,}건  (API 전체 {total_count}건)")
 
-                    biz = Business(
-                        opn_svc_id  = svc_path,
-                        opn_svc_nm  = svc_name,
-                        bsn_nm      = bsn_nm,
-                        bsn_nm_masked = mask_name(bsn_nm),
-                        uptae_nm    = uptae_nm,
-                        addr        = addr,
-                        road_addr   = row.get("RDNWHL_ADDR") or row.get("rdnwhlAddr"),
-                        zip_cd      = row.get("ZIP_CD") or row.get("zipCd"),
-                        tel         = tel,
-                        status      = parse_status(status_cd),
-                        status_code = status_cd,
-                        open_date   = parse_date(open_ymd),
-                        close_date  = parse_date(close_ymd),
-                        sido        = sido,
-                        sigungu     = sigungu,
-                        raw_data    = row,
-                    )
-                    db.add(biz)
-                    total_saved += 1
-
-                await db.commit()
-
-            total_count = body.get("totalCount", "?")
-            print(f"  page {page:4d} → {total_saved:,}건 저장  (전체 {total_count}건)")
-
-            # 마지막 페이지 체크
-            if isinstance(total_count, int) and total_saved >= total_count:
+            if isinstance(total_count, int) and total_saved >= min(total_count, max_records):
                 break
             page += 1
 
-    print(f"\n  ✓ 총 {total_saved:,}건 수집 완료\n")
+    print(f"\n  ✓ {sido_nm} 수집 완료: {total_saved:,}건\n")
     await engine.dispose()
+
+    return {"sido": sido_nm, "saved": total_saved, "pages": page}
 
 
 async def main():
-    parser = argparse.ArgumentParser(description="공공데이터포털 지방행정 인허가정보 수집")
-    parser.add_argument("--svc",  default="일반음식점", help="업종명 또는 'all'")
-    parser.add_argument("--max",  type=int, default=10000, help="최대 수집 건수")
+    parser = argparse.ArgumentParser(description="소상공인 상가업소 데이터 수집")
+    parser.add_argument("--sido", default="서울", help="시도명 또는 'all'")
+    parser.add_argument("--max", type=int, default=10000, help="최대 수집 건수")
     args = parser.parse_args()
 
-    if args.svc == "all":
-        for name, path in SERVICE_MAP.items():
-            await collect(name, path, args.max)
+    if args.sido == "all":
+        for nm in SIDO_CODES.keys():
+            await collect(nm, args.max)
     else:
-        path = SERVICE_MAP.get(args.svc, args.svc)
-        await collect(args.svc, path, args.max)
+        result = await collect(args.sido, args.max)
+        print(result)
 
 
 if __name__ == "__main__":

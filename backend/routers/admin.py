@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException
+import asyncio
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy import select, func, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -65,6 +66,73 @@ async def list_users(
             for u in users
         ],
     }
+
+
+@router.post("/collect")
+async def trigger_collect(
+    body: dict,
+    background_tasks: BackgroundTasks,
+    _: User = Depends(require_admin),
+):
+    """
+    공공데이터 수집 트리거 (백그라운드 실행)
+    body: { "sido": "서울", "max": 10000 }
+    """
+    from services.collector import collect, SIDO_CODES
+    sido = body.get("sido", "서울")
+    max_records = body.get("max", 5000)
+
+    if sido != "all" and sido not in SIDO_CODES:
+        raise HTTPException(status_code=400, detail=f"올바른 시도명을 입력하세요: {list(SIDO_CODES.keys())}")
+
+    async def run_collect():
+        if sido == "all":
+            for nm in SIDO_CODES.keys():
+                await collect(nm, max_records)
+        else:
+            await collect(sido, max_records)
+
+    background_tasks.add_task(run_collect)
+    return {"message": f"{sido} 데이터 수집을 백그라운드에서 시작했습니다", "max": max_records}
+
+
+@router.get("/collect/status")
+async def collect_status(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    """현재 수집된 데이터 현황"""
+    total = (await db.execute(select(func.count()).select_from(Business))).scalar()
+    from sqlalchemy import text
+    sido_result = await db.execute(
+        select(Business.sido, func.count().label("cnt"))
+        .group_by(Business.sido)
+        .order_by(desc("cnt"))
+    )
+    sido_stats = [{"sido": row.sido, "count": row.cnt} for row in sido_result]
+    return {"total": total, "by_sido": sido_stats}
+
+
+@router.get("/test-api")
+async def test_api(_: User = Depends(require_admin)):
+    """API 키 및 연결 테스트 (서울 1건만 조회)"""
+    import httpx
+    from config import settings
+    url = "https://apis.data.go.kr/B553077/api/open/sdsc2/storeListInAdmi/v2"
+    params = {
+        "serviceKey": settings.DATA_GO_KR_API_KEY,
+        "pageNo": 1,
+        "numOfRows": 3,
+        "type": "json",
+        "divId": "ctprvnCd",
+        "key": "11",
+    }
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(url, params=params, timeout=15.0)
+            return {"status": resp.status_code, "data": resp.json()}
+    except Exception as e:
+        return {"error": str(e)}
 
 
 @router.get("/searches")
