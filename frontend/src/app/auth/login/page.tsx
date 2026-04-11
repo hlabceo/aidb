@@ -92,8 +92,8 @@ export default function LoginPage() {
             <label style={{ fontSize: 12, color: "#9ca3af", display: "block", marginBottom: 6 }}>이메일</label>
             <div style={{ position: "relative", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12 }}>
               <Mail size={15} color="#6b7280" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
-              <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
-                placeholder="name@example.com"
+              <input type="text" required value={email} onChange={(e) => setEmail(e.target.value)}
+                placeholder="이메일 또는 아이디"
                 style={{ width: "100%", background: "transparent", border: "none", outline: "none", paddingTop: 12, paddingBottom: 12, paddingLeft: 38, paddingRight: 14, fontSize: 14, color: "white", fontFamily: "inherit" }} />
             </div>
           </div>
