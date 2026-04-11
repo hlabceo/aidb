@@ -8,7 +8,7 @@ import api from "@/lib/api";
 import Link from "next/link";
 
 const SUGGESTIONS = ["강남구 치킨집","홍대 카페","부산 횟집","서울 미용실","수영장","인천 약국"];
-const TAGS = ["수영장","카페","미용실","약국","편의점","음식점","병원","세탁소"];
+const TAGS = ["수영장업","미용업","카페","약국","편의점","음식점","병원","세탁소"];
 
 interface Stats { total: number; this_month: number; this_week: number; today: number; updated_at: string; }
 

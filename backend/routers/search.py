@@ -166,11 +166,20 @@ async def search(
     stmt = select(Business)
     conditions = []
 
+    # 동의어 처리 (검색어 → DB 업종명 매핑)
+    SYNONYMS = {
+        "미용실": "미용업", "헤어샵": "미용업", "헤어": "미용업", "뷰티": "미용업",
+        "수영장": "수영장업",
+    }
+    synonym = SYNONYMS.get(q.strip())
+    extra_cond = [Business.uptae_nm.ilike(f"%{synonym}%")] if synonym else []
+
     conditions.append(
         or_(
             Business.bsn_nm.ilike(f"%{q}%"),
             Business.addr.ilike(f"%{q}%"),
             Business.uptae_nm.ilike(f"%{q}%"),
+            *extra_cond,
         )
     )
 
