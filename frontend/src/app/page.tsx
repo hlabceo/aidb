@@ -133,7 +133,7 @@ export default function HomePage() {
                 </span>
               </div>
               {/* 4분할 통계 */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)" }}>
+              <div className="stats-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)" }}>
                 {[
                   { label: "전체 데이터", val: stats.total,      accent: "rgba(139,92,246,1)",   glow: "rgba(139,92,246,0.15)" },
                   { label: "이번달 신규", val: stats.this_month, accent: "rgba(99,179,237,1)",    glow: "rgba(99,179,237,0.12)" },
@@ -158,7 +158,7 @@ export default function HomePage() {
           )}
 
           {/* 통계 카드 */}
-          <div style={{ marginTop: 40, width: "100%", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
+          <div className="feature-grid" style={{ marginTop: 40, width: "100%", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
             {[
               { label: "등록 가게", value: stats ? `${stats.total.toLocaleString()}+` : "집계중", icon: Database },
               { label: "월 검색", value: "200만+", icon: TrendingUp },

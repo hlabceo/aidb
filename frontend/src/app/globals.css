@@ -68,3 +68,28 @@ html, body {
 .animate-glow {
   animation: glow-pulse 3s ease-in-out infinite;
 }
+
+/* 모바일 최적화 */
+@media (max-width: 640px) {
+  /* 검색페이지 헤더 */
+  .aidb-logo-text { display: none; }
+  .header-username { display: none; }
+
+  /* 건수 선택 버튼 */
+  .pagesize-full { display: none; }
+  .pagesize-short { display: inline; }
+
+  /* 하단 다운로드 바 */
+  .download-bar-text { display: none; }
+
+  /* 통계 배너 4→2열 */
+  .stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+
+  /* 통계 카드 3→1열 */
+  .feature-grid { grid-template-columns: 1fr !important; }
+}
+
+@media (min-width: 641px) {
+  .pagesize-short { display: none; }
+  .pagesize-full { display: inline; }
+}

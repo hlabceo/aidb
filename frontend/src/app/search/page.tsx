@@ -113,23 +113,23 @@ function SearchContent() {
             <div style={{ width: 24, height: 24, borderRadius: 6, background: "linear-gradient(135deg,#6366f1,#9333ea)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Sparkles size={11} color="white" />
             </div>
-            <span style={{ fontSize: 13, fontWeight: 700, background: "linear-gradient(135deg,#818cf8,#c084fc)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>AIDB</span>
+            <span className="aidb-logo-text" style={{ fontSize: 13, fontWeight: 700, background: "linear-gradient(135deg,#818cf8,#c084fc)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>AIDB</span>
           </Link>
 
           <form onSubmit={handleSearch} style={{ flex: 1, display: "flex", gap: 8 }}>
             <div style={{ flex: 1, position: "relative", display: "flex", alignItems: "center", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10 }}>
               <Search size={15} color="#6b7280" style={{ position: "absolute", left: 10 }} />
               <input value={newQuery} onChange={e => setNewQuery(e.target.value)}
-                style={{ width: "100%", background: "transparent", border: "none", outline: "none", paddingLeft: 34, paddingRight: 12, paddingTop: 9, paddingBottom: 9, fontSize: 14, color: "white", fontFamily: "inherit" }} />
+                style={{ width: "100%", background: "transparent", border: "none", outline: "none", paddingLeft: 34, paddingRight: 12, paddingTop: 9, paddingBottom: 9, fontSize: 16, color: "white", fontFamily: "inherit" }} />
             </div>
             <button type="submit" style={{ background: "linear-gradient(135deg,#4f46e5,#9333ea)", border: "none", color: "white", padding: "0 18px", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>검색</button>
           </form>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
             {user ? (
               <>
-                <span style={{ fontSize: 12, color: "#facc15", background: "rgba(234,179,8,0.1)", padding: "4px 10px", borderRadius: 999 }}>{user.points.toLocaleString()}P</span>
-                <Link href="/mypage" style={{ fontSize: 12, color: "#9ca3af", textDecoration: "none", cursor: "pointer" }}>{user.name}</Link>
+                <span style={{ fontSize: 12, color: "#facc15", background: "rgba(234,179,8,0.1)", padding: "4px 8px", borderRadius: 999 }}>{user.points.toLocaleString()}P</span>
+                <Link href="/mypage" className="header-username" style={{ fontSize: 12, color: "#9ca3af", textDecoration: "none", cursor: "pointer" }}>{user.name}</Link>
               </>
             ) : (
               <Link href="/auth/login" style={{ fontSize: 12, color: "#818cf8", textDecoration: "none" }}>로그인</Link>
@@ -140,7 +140,7 @@ function SearchContent() {
 
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "16px 16px 140px" }}>
         {/* 결과 요약 + 건수 선택 */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10, marginBottom: 12 }}>
+        <div className="summary-row" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10, marginBottom: 12 }}>
           <span style={{ fontSize: 13, color: "#9ca3af" }}>
             <strong style={{ color: "#a5b4fc" }}>&ldquo;{q}&rdquo;</strong> 검색결과{" "}
             <strong style={{ color: "white", fontSize: 15 }}>{total.toLocaleString()}</strong>건
@@ -148,8 +148,9 @@ function SearchContent() {
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             {PAGE_SIZES.map(s => (
               <button key={s} onClick={() => setPageSize(s)}
-                style={{ fontSize: 12, padding: "5px 12px", borderRadius: 8, border: pageSize === s ? "1px solid #6366f1" : "1px solid rgba(255,255,255,0.1)", background: pageSize === s ? "rgba(99,102,241,0.2)" : "transparent", color: pageSize === s ? "#a5b4fc" : "#6b7280", cursor: "pointer", fontFamily: "inherit" }}>
-                {s.toLocaleString()}건 보기
+                style={{ fontSize: 12, padding: "5px 10px", borderRadius: 8, border: pageSize === s ? "1px solid #6366f1" : "1px solid rgba(255,255,255,0.1)", background: pageSize === s ? "rgba(99,102,241,0.2)" : "transparent", color: pageSize === s ? "#a5b4fc" : "#6b7280", cursor: "pointer", fontFamily: "inherit" }}>
+                <span className="pagesize-full">{s.toLocaleString()}건 보기</span>
+                <span className="pagesize-short">{s >= 1000 ? "1000건" : `${s}건`}</span>
               </button>
             ))}
           </div>
@@ -206,7 +207,7 @@ function SearchContent() {
             <div key={item.id} style={{
               background: !item.masked ? "rgba(99,102,241,0.05)" : "rgba(255,255,255,0.02)",
               border: isSelected ? "1px solid rgba(99,102,241,0.5)" : !item.masked ? "1px solid rgba(99,102,241,0.2)" : "1px solid rgba(255,255,255,0.06)",
-              borderRadius: 14, padding: "14px 16px", marginBottom: 10,
+              borderRadius: 14, padding: "12px 12px", marginBottom: 8,
               display: "flex", gap: 12, alignItems: "flex-start", transition: "all 0.15s",
             }}>
               {/* 체크박스 */}
