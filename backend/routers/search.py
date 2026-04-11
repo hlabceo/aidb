@@ -60,19 +60,19 @@ def normalize_status(status: str | None) -> str:
     return status
 
 
-def build_business_item(b: Business, revealed: bool, rank: int) -> dict:
+def build_business_item(b: Business, revealed: bool, rank: int, free: bool = False) -> dict:
     has_tel = bool(b.tel and b.tel.strip())
     point_cost = get_point_cost(b)
     status = normalize_status(b.status)
 
-    if revealed or rank <= settings.FREE_VIEW_COUNT:
+    if revealed or free:
         return {
             "id": str(b.id),
             "rank": rank,
             "bsn_nm": b.bsn_nm,
             "uptae_nm": b.uptae_nm,
-            "addr": partial_addr(b.addr),
-            "road_addr": partial_addr(b.road_addr),
+            "addr": b.addr,
+            "road_addr": b.road_addr,
             "tel": b.tel,
             "status": status,
             "open_date": str(b.open_date) if b.open_date else None,
@@ -204,11 +204,15 @@ async def search(
     stmt = stmt.order_by(Business.bsn_nm).offset((page - 1) * size).limit(size)
     rows = (await db.execute(stmt)).scalars().all()
 
+    # 필터 없는 1페이지일 때만 상위 3건 FREE (지역/상태 필터 적용 시 FREE 없음)
+    is_unfiltered = (not sido or sido == "전국") and (not status or status == "전체") and (not sigungu) and (not uptae) and page == 1
+
     items = []
     for i, b in enumerate(rows):
         rank = (page - 1) * size + i + 1
         revealed = str(b.id) in viewed_ids
-        items.append(build_business_item(b, revealed, rank))
+        free = is_unfiltered and rank <= settings.FREE_VIEW_COUNT
+        items.append(build_business_item(b, revealed, rank, free=free))
 
     log = SearchLog(
         user_id=current_user.id if current_user else None,
