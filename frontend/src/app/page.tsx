@@ -124,28 +124,33 @@ export default function HomePage() {
 
           {/* 실시간 통계 배너 */}
           {stats && (
-            <div style={{ marginTop: 32, width: "100%", borderRadius: 20, overflow: "hidden", position: "relative", background: "linear-gradient(135deg, rgba(79,70,229,0.18) 0%, rgba(147,51,234,0.14) 50%, rgba(56,189,248,0.1) 100%)", border: "1px solid rgba(99,102,241,0.25)" }}>
+            <div style={{ marginTop: 32, width: "100%", borderRadius: 20, overflow: "hidden", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", backdropFilter: "blur(12px)" }}>
               {/* 상단 헤더 */}
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "14px 20px 10px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-                <RefreshCw size={14} color="#818cf8" />
-                <span style={{ fontSize: 13, color: "#a5b4fc", fontWeight: 700, letterSpacing: "0.5px" }}>
-                  🔄 {stats.updated_at} 기준 실시간 데이터
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "12px 20px", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                <RefreshCw size={12} color="#6b7280" />
+                <span style={{ fontSize: 11, color: "#6b7280", fontWeight: 500, letterSpacing: "0.3px" }}>
+                  {stats.updated_at} 기준 실시간 현황
                 </span>
               </div>
               {/* 4분할 통계 */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)" }}>
                 {[
-                  { label: "전체 데이터", val: stats.total, color: "#818cf8", bg: "rgba(99,102,241,0.08)" },
-                  { label: "이번달 신규", val: stats.this_month, color: "#34d399", bg: "rgba(52,211,153,0.06)" },
-                  { label: "이번주 신규", val: stats.this_week, color: "#60a5fa", bg: "rgba(96,165,250,0.06)" },
-                  { label: "오늘 신규", val: stats.today, color: "#f472b6", bg: "rgba(244,114,182,0.06)" },
-                ].map(({ label, val, color, bg }, i) => (
-                  <div key={label} style={{ padding: "18px 12px", textAlign: "center", background: bg, borderRight: i < 3 ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
-                    <div style={{ fontSize: "clamp(1.4rem, 3vw, 2rem)", fontWeight: 800, color, lineHeight: 1.1, marginBottom: 4 }}>
+                  { label: "전체 데이터", val: stats.total,      accent: "rgba(139,92,246,1)",   glow: "rgba(139,92,246,0.15)" },
+                  { label: "이번달 신규", val: stats.this_month, accent: "rgba(99,179,237,1)",    glow: "rgba(99,179,237,0.12)" },
+                  { label: "이번주 신규", val: stats.this_week,  accent: "rgba(104,211,145,1)",   glow: "rgba(104,211,145,0.12)" },
+                  { label: "오늘 신규",   val: stats.today,      accent: "rgba(246,173,85,1)",    glow: "rgba(246,173,85,0.12)" },
+                ].map(({ label, val, accent, glow }, i) => (
+                  <div key={label} style={{ padding: "20px 10px 18px", textAlign: "center", borderRight: i < 3 ? "1px solid rgba(255,255,255,0.05)" : "none", position: "relative", overflow: "hidden" }}>
+                    {/* glow 효과 */}
+                    <div style={{ position: "absolute", bottom: 0, left: "50%", transform: "translateX(-50%)", width: 60, height: 30, borderRadius: "50%", background: glow, filter: "blur(12px)", pointerEvents: "none" }} />
+                    <div style={{ fontSize: "clamp(1.3rem, 2.8vw, 1.9rem)", fontWeight: 700, color: "white", lineHeight: 1.1, marginBottom: 6, letterSpacing: "-0.5px" }}>
                       {val.toLocaleString()}
-                      <span style={{ fontSize: "clamp(0.65rem, 1.5vw, 0.8rem)", color: "rgba(255,255,255,0.35)", marginLeft: 3, fontWeight: 500 }}>건</span>
+                      <span style={{ fontSize: "0.55em", color: "rgba(255,255,255,0.3)", marginLeft: 3, fontWeight: 400 }}>건</span>
                     </div>
-                    <div style={{ fontSize: "clamp(0.65rem, 1.5vw, 0.75rem)", color: "rgba(255,255,255,0.45)", fontWeight: 500 }}>{label}</div>
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                      <div style={{ width: 5, height: 5, borderRadius: "50%", background: accent, boxShadow: `0 0 6px ${accent}` }} />
+                      <span style={{ fontSize: "clamp(0.6rem, 1.4vw, 0.7rem)", color: "rgba(255,255,255,0.4)", fontWeight: 500 }}>{label}</span>
+                    </div>
                   </div>
                 ))}
               </div>
