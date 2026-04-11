@@ -25,8 +25,9 @@ from models.models import Business
 # ── 수집 가능한 업종 목록 ──────────────────────────────────────
 # 형식: "서비스키": ("업종표시명", "API 엔드포인트 경로")
 SERVICE_MAP = {
-    "swimming_pools": ("수영장업", "https://apis.data.go.kr/1741000/swimming_pools/info"),
-    "beauty_salons":  ("미용업",   "https://apis.data.go.kr/1741000/beauty_salons/info"),
+    "swimming_pools": ("수영장업",   "https://apis.data.go.kr/1741000/swimming_pools/info"),
+    "beauty_salons":  ("미용업",     "https://apis.data.go.kr/1741000/beauty_salons/info"),
+    "fitness_centers":("체력단련장", "https://apis.data.go.kr/1741000/fitness_centers/info"),
     # 아래 API들은 data.go.kr에서 추가 승인 후 주석 해제
     # "general_restaurants": ("일반음식점", "https://apis.data.go.kr/1741000/general_restaurants/info"),
     # "pharmacies":          ("약국",       "https://apis.data.go.kr/1741000/pharmacies/info"),

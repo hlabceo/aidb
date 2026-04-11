@@ -170,6 +170,7 @@ async def search(
     SYNONYMS = {
         "미용실": "미용업", "헤어샵": "미용업", "헤어": "미용업", "뷰티": "미용업",
         "수영장": "수영장업",
+        "헬스장": "체력단련장", "헬스": "체력단련장", "피트니스": "체력단련장", "gym": "체력단련장",
     }
     synonym = SYNONYMS.get(q.strip())
     extra_cond = [Business.uptae_nm.ilike(f"%{synonym}%")] if synonym else []
