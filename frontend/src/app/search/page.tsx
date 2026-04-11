@@ -199,7 +199,7 @@ function SearchContent() {
 
         {/* 결과 카드 */}
         {!loading && results.map(item => {
-          const isFree = item.rank <= 3;
+          const isFree = !item.masked && item.rank <= 3;
           const isSelected = selected.has(item.id);
 
           return (
