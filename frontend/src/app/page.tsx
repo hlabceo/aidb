@@ -45,11 +45,26 @@ export default function HomePage() {
     api.get("/search/stats").then(({ data }) => setStats(data)).catch(() => {});
   }, []);
 
+  // 검색어에서 도시명 분리
+  const SIDO_LIST_MAIN = ["서울","부산","대구","인천","광주","대전","울산","세종","경기","강원","충북","충남","전북","전남","경북","경남","제주"];
+  const parseQuerySido = (input: string) => {
+    const parts = input.trim().split(/\s+/);
+    for (let i = 0; i < parts.length; i++) {
+      if (SIDO_LIST_MAIN.includes(parts[i])) {
+        const rest = parts.filter((_, idx) => idx !== i).join(" ").trim();
+        return { q: rest || parts[i], sido: parts[i] };
+      }
+    }
+    return { q: input.trim(), sido: null };
+  };
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    const q = query.trim();
-    if (!q) return;
-    router.push(`/search?q=${encodeURIComponent(q)}`);
+    if (!query.trim()) return;
+    const { q, sido } = parseQuerySido(query.trim());
+    const params = new URLSearchParams({ q });
+    if (sido) params.set("sido", sido);
+    router.push(`/search?${params.toString()}`);
   };
 
   return (
@@ -115,7 +130,7 @@ export default function HomePage() {
             </div>
             <div style={{ marginTop: 14, display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
               {TAGS.map(tag => (
-                <button key={tag} type="button" onClick={() => router.push(`/search?q=${encodeURIComponent(tag)}`)}
+                <button key={tag} type="button" onClick={() => { const { q, sido } = parseQuerySido(tag); const p = new URLSearchParams({ q }); if (sido) p.set("sido", sido); router.push(`/search?${p.toString()}`); }}
                   style={{ fontSize: 12, color: "#6b7280", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", padding: "6px 14px", borderRadius: 999, cursor: "pointer", transition: "all 0.15s", fontFamily: "inherit" }}
                   onMouseEnter={e => { e.currentTarget.style.color = "#a5b4fc"; e.currentTarget.style.borderColor = "rgba(99,102,241,0.4)"; }}
                   onMouseLeave={e => { e.currentTarget.style.color = "#6b7280"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; }}>

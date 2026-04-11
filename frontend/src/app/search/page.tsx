@@ -15,6 +15,18 @@ const PAGE_SIZES = [100, 300, 500, 1000];
 const SIDO_LIST = ["전국","서울","부산","대구","인천","광주","대전","울산","세종","경기","강원","충북","충남","전북","전남","경북","경남","제주"];
 const STATUS_LIST = ["전체","영업중","폐업","휴업"];
 
+// 검색어에서 도시명 분리 ("서울 수영장" → { q: "수영장", sido: "서울" })
+function parseQuerySido(input: string): { q: string; sido: string | null } {
+  const parts = input.trim().split(/\s+/);
+  for (let i = 0; i < parts.length; i++) {
+    if (SIDO_LIST.includes(parts[i]) && parts[i] !== "전국") {
+      const rest = parts.filter((_, idx) => idx !== i).join(" ").trim();
+      return { q: rest || parts[i], sido: parts[i] };
+    }
+  }
+  return { q: input.trim(), sido: null };
+}
+
 interface BizItem {
   id: string; rank: number; bsn_nm: string; uptae_nm: string;
   addr: string; road_addr: string; tel: string; status: string;
@@ -27,12 +39,13 @@ function SearchContent() {
   const searchParams = useSearchParams();
   const { user, refreshUser } = useAuthStore();
   const q = searchParams.get("q") || "";
+  const sidoParam = searchParams.get("sido") || "전국";
 
   const [results, setResults] = useState<BizItem[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [pageSize, setPageSize] = useState(100);
-  const [sido, setSido] = useState("전국");
+  const [sido, setSido] = useState(sidoParam);
   const [statusFilter, setStatusFilter] = useState("전체");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [showCharge, setShowCharge] = useState(false);
@@ -98,7 +111,11 @@ function SearchContent() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newQuery.trim()) router.push(`/search?q=${encodeURIComponent(newQuery.trim())}`);
+    if (!newQuery.trim()) return;
+    const { q: parsedQ, sido: parsedSido } = parseQuerySido(newQuery.trim());
+    const params = new URLSearchParams({ q: parsedQ });
+    if (parsedSido) params.set("sido", parsedSido);
+    router.push(`/search?${params.toString()}`);
   };
 
   return (
