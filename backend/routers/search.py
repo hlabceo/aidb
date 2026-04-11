@@ -18,12 +18,12 @@ router = APIRouter(prefix="/search", tags=["search"])
 
 # ── 마스킹 함수 (서버사이드 - 개발자도구로 볼 수 없음) ──────────────
 def partial_name(name: str) -> str:
-    """홍길동치킨 → 홍●●● (첫 글자만 공개)"""
+    """홍길동치킨 → 홍길●● (첫 2글자 공개)"""
     if not name:
         return "●●●"
-    if len(name) <= 1:
-        return name + "●"
-    return name[0] + "●" * (len(name) - 1)
+    if len(name) <= 2:
+        return name[0] + "●"
+    return name[:2] + "●" * (len(name) - 2)
 
 
 def partial_addr(addr: str | None) -> str:
