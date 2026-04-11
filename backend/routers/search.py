@@ -27,12 +27,12 @@ def partial_name(name: str) -> str:
 
 
 def partial_addr(addr: str | None) -> str:
-    """서울시 강남구 테헤란로 123 → 서울시 강남구 ●●● (시군구까지만 공개)"""
+    """서울시 강남구 테헤란로 → 시+구+로 까지만 공개, 이후 ●●● 처리"""
     if not addr:
         return "●●●"
     parts = addr.strip().split()
-    if len(parts) <= 2:
-        return addr + " ●●●"
+    if len(parts) <= 3:
+        return " ".join(parts) + " ●●●"
     visible = " ".join(parts[:3])
     return visible + " ●●●"
 
@@ -71,8 +71,8 @@ def build_business_item(b: Business, revealed: bool, rank: int) -> dict:
             "rank": rank,
             "bsn_nm": b.bsn_nm,
             "uptae_nm": b.uptae_nm,
-            "addr": b.addr,
-            "road_addr": b.road_addr,
+            "addr": partial_addr(b.addr),
+            "road_addr": partial_addr(b.road_addr),
             "tel": b.tel,
             "status": status,
             "open_date": str(b.open_date) if b.open_date else None,
