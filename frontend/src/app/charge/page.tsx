@@ -17,16 +17,18 @@ interface Package {
 
 export default function ChargePage() {
   const router = useRouter();
-  const { user, refreshUser } = useAuthStore();
+  const { user, refreshUser, _hasHydrated } = useAuthStore();
   const [packages, setPackages] = useState<Package[]>([]);
   const [selected, setSelected] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
+    if (!_hasHydrated) return;
     if (!user) { router.push("/auth/login"); return; }
     api.get("/points/packages").then(({ data }) => setPackages(data.packages));
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [_hasHydrated]);
 
   const handleCharge = async () => {
     if (!selected) return;

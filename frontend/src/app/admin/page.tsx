@@ -130,7 +130,7 @@ const td: React.CSSProperties = {
 
 export default function AdminPage() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, _hasHydrated } = useAuthStore();
 
   const [tab, setTab] = useState<Tab>("stats");
 
@@ -158,11 +158,12 @@ export default function AdminPage() {
   // ── Auth guard ──────────────────────────────────────────────────────────────
 
   useEffect(() => {
+    if (!_hasHydrated) return;
     if (!user) { router.push("/auth/login"); return; }
     if (user.role !== "admin") { router.push("/"); return; }
     loadStats();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [_hasHydrated]);
 
   // ── Tab loaders ─────────────────────────────────────────────────────────────
 

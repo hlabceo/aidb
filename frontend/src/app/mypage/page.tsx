@@ -8,15 +8,16 @@ import Link from "next/link";
 
 export default function MyPage() {
   const router = useRouter();
-  const { user, logout, refreshUser } = useAuthStore();
+  const { user, logout, refreshUser, _hasHydrated } = useAuthStore();
 
   useEffect(() => {
+    if (!_hasHydrated) return;
     if (!user) { router.push("/auth/login"); return; }
     refreshUser();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [_hasHydrated]);
 
-  if (!user) return null;
+  if (!_hasHydrated || !user) return null;
 
   const handleLogout = () => {
     logout();
