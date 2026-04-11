@@ -290,20 +290,21 @@ function SearchContent() {
 
       {/* 하단 고정 바 */}
       {selectedCount > 0 && (
-        <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50, background: "rgba(10,10,20,0.97)", backdropFilter: "blur(12px)", borderTop: "1px solid rgba(99,102,241,0.3)", padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+        <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50, background: "rgba(10,10,20,0.97)", backdropFilter: "blur(12px)", borderTop: "1px solid rgba(99,102,241,0.3)", padding: "10px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
           <div>
-            <span style={{ fontSize: 14, color: "#a5b4fc", fontWeight: 600 }}>{selectedCount}건 선택</span>
-            {totalCost > 0 && <span style={{ fontSize: 13, color: "#facc15", marginLeft: 8 }}>{totalCost.toLocaleString()}P 차감</span>}
+            <span style={{ fontSize: 13, color: "#a5b4fc", fontWeight: 600 }}>{selectedCount}건 선택</span>
+            {totalCost > 0 && <span style={{ fontSize: 12, color: "#facc15", marginLeft: 6 }}>{totalCost.toLocaleString()}P 차감</span>}
           </div>
-          <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ display: "flex", gap: 8 }}>
             <button onClick={() => setSelected(new Set())}
-              style={{ fontSize: 13, color: "#6b7280", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", padding: "10px 18px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit" }}>
+              style={{ fontSize: 12, color: "#6b7280", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", padding: "9px 14px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit" }}>
               선택해제
             </button>
             <button onClick={handleDownload} disabled={downloading}
-              style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 600, color: "white", background: downloading ? "rgba(99,102,241,0.5)" : "linear-gradient(135deg,#4f46e5,#9333ea)", border: "none", padding: "10px 22px", borderRadius: 10, cursor: downloading ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
-              {downloading ? <Loader2 size={15} style={{ animation: "spin 1s linear infinite" }} /> : <Download size={15} />}
-              {totalCost > 0 ? `${totalCost.toLocaleString()}P 차감 후 엑셀 다운로드` : "엑셀 다운로드"}
+              style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600, color: "white", background: downloading ? "rgba(99,102,241,0.5)" : "linear-gradient(135deg,#4f46e5,#9333ea)", border: "none", padding: "9px 16px", borderRadius: 10, cursor: downloading ? "not-allowed" : "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+              {downloading ? <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} /> : <Download size={14} />}
+              <span className="dl-btn-full">{totalCost > 0 ? `${totalCost.toLocaleString()}P 차감 후 엑셀 다운로드` : "엑셀 다운로드"}</span>
+              <span className="dl-btn-short">엑셀 다운로드</span>
             </button>
           </div>
         </div>
@@ -311,7 +312,22 @@ function SearchContent() {
 
       {showCharge && <ChargeModal onClose={() => { setShowCharge(false); refreshUser(); }} />}
 
-      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+      <style>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .pagesize-short { display: none; }
+        .pagesize-full { display: inline; }
+        .dl-btn-short { display: none; }
+        .dl-btn-full { display: inline; }
+        @media (max-width: 480px) {
+          .aidb-logo-text { display: none; }
+          .header-username { display: none; }
+          .pagesize-short { display: inline; }
+          .pagesize-full { display: none; }
+          .dl-btn-short { display: inline; }
+          .dl-btn-full { display: none; }
+          .summary-row { flex-direction: column; align-items: flex-start !important; }
+        }
+      `}</style>
     </div>
   );
 }

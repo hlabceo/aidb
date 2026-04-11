@@ -71,14 +71,14 @@ export default function HomePage() {
           <nav style={{ display: "flex", alignItems: "center", gap: 6 }}>
             {user ? (
               <>
-                <span style={{ fontSize: 12, color: "#facc15", background: "rgba(234,179,8,0.1)", padding: "5px 12px", borderRadius: 999 }}>{user.points.toLocaleString()}P</span>
-                <Link href="/mypage" style={{ fontSize: 12, color: "#9ca3af", padding: "5px 12px", borderRadius: 999, textDecoration: "none", cursor: "pointer" }}>{user.name}</Link>
-                <button onClick={logout} style={{ fontSize: 12, color: "#6b7280", background: "none", border: "none", cursor: "pointer", padding: "5px 8px" }}>로그아웃</button>
+                <span style={{ fontSize: 12, color: "#facc15", background: "rgba(234,179,8,0.1)", padding: "5px 10px", borderRadius: 999 }}>{user.points.toLocaleString()}P</span>
+                <Link href="/mypage" className="home-nav-username" style={{ fontSize: 12, color: "#9ca3af", padding: "5px 10px", borderRadius: 999, textDecoration: "none", cursor: "pointer" }}>{user.name}</Link>
+                <button onClick={logout} className="home-nav-logout" style={{ fontSize: 12, color: "#6b7280", background: "none", border: "none", cursor: "pointer", padding: "5px 8px" }}>로그아웃</button>
               </>
             ) : (
               <>
-                <Link href="/auth/login" style={{ fontSize: 12, color: "#9ca3af", padding: "5px 12px", borderRadius: 999, textDecoration: "none", cursor: "pointer" }}>로그인</Link>
-                <Link href="/auth/signup" style={{ fontSize: 12, fontWeight: 600, color: "white", background: "#4f46e5", padding: "6px 16px", borderRadius: 999, textDecoration: "none", cursor: "pointer" }}>무료 시작</Link>
+                <Link href="/auth/login" style={{ fontSize: 12, color: "#9ca3af", padding: "5px 10px", borderRadius: 999, textDecoration: "none", cursor: "pointer" }}>로그인</Link>
+                <Link href="/auth/signup" style={{ fontSize: 12, fontWeight: 600, color: "white", background: "#4f46e5", padding: "6px 14px", borderRadius: 999, textDecoration: "none", cursor: "pointer" }}>무료 시작</Link>
               </>
             )}
           </nav>
@@ -86,7 +86,7 @@ export default function HomePage() {
       </header>
 
       {/* 메인 */}
-      <main style={{ position: "relative", zIndex: 10, flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 24px" }}>
+      <main style={{ position: "relative", zIndex: 10, flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px 16px" }}>
         <div style={{ width: "100%", maxWidth: 760, display: "flex", flexDirection: "column", alignItems: "center" }}>
           <div style={{ marginBottom: 24, display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(99,102,241,0.1)", border: "1px solid rgba(99,102,241,0.25)", borderRadius: 999, padding: "6px 14px", fontSize: 14, color: "#a5b4fc" }}>
             <Sparkles size={14} /> 현장 영업, 판촉 행사, 우편 발송에 딱! 좋은 플랫폼
@@ -106,7 +106,7 @@ export default function HomePage() {
               <input ref={inputRef} type="text" value={query} onChange={e => setQuery(e.target.value)}
                 onFocus={() => setIsFocused(true)} onBlur={() => setIsFocused(false)}
                 placeholder={isFocused ? "지역명, 업종, 상호명으로 검색하세요" : placeholder || ""}
-                style={{ width: "100%", background: "transparent", border: "none", outline: "none", paddingLeft: 56, paddingRight: 110, paddingTop: 22, paddingBottom: 22, fontSize: 17, color: "white", fontFamily: "inherit" }} />
+                style={{ width: "100%", background: "transparent", border: "none", outline: "none", paddingLeft: 56, paddingRight: 110, paddingTop: 18, paddingBottom: 18, fontSize: 16, color: "white", fontFamily: "inherit" }} />
               <button type="submit" style={{ position: "absolute", right: 10, background: "linear-gradient(135deg, #4f46e5, #9333ea)", border: "none", color: "white", padding: "10px 22px", borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
                 onMouseEnter={e => (e.currentTarget.style.opacity = "0.85")} onMouseLeave={e => (e.currentTarget.style.opacity = "1")}>검색</button>
             </div>
@@ -133,7 +133,7 @@ export default function HomePage() {
                 </span>
               </div>
               {/* 4분할 통계 */}
-              <div className="stats-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)" }}>
+              <div className="stats-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gridTemplateRows: "auto" }}>
                 {[
                   { label: "전체 데이터", val: stats.total,      accent: "rgba(139,92,246,1)",   glow: "rgba(139,92,246,0.15)" },
                   { label: "이번달 신규", val: stats.this_month, accent: "rgba(99,179,237,1)",    glow: "rgba(99,179,237,0.12)" },
@@ -158,7 +158,7 @@ export default function HomePage() {
           )}
 
           {/* 통계 카드 */}
-          <div className="feature-grid" style={{ marginTop: 40, width: "100%", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
+          <div className="feature-grid" style={{ marginTop: 32, width: "100%", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
             {[
               { label: "등록 가게", value: stats ? `${stats.total.toLocaleString()}+` : "집계중", icon: Database },
               { label: "월 검색", value: "200만+", icon: TrendingUp },
@@ -173,6 +173,20 @@ export default function HomePage() {
           </div>
         </div>
       </main>
+
+      <style>{`
+        @media (max-width: 480px) {
+          .home-nav-username { display: none !important; }
+          .home-nav-logout { display: none !important; }
+          .stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+          .stats-grid > div:nth-child(2) { border-right: none !important; }
+          .stats-grid > div:nth-child(odd) { border-right: 1px solid rgba(255,255,255,0.05) !important; }
+          .stats-grid > div:nth-child(1),
+          .stats-grid > div:nth-child(2) { border-bottom: 1px solid rgba(255,255,255,0.05); }
+          .feature-grid { grid-template-columns: repeat(3, 1fr) !important; gap: 8px !important; }
+          .feature-grid > div { padding: 16px 8px !important; border-radius: 14px !important; }
+        }
+      `}</style>
 
       {/* Footer */}
       <footer style={{ position: "relative", zIndex: 10, borderTop: "1px solid rgba(255,255,255,0.06)", background: "rgba(0,0,0,0.3)", padding: "28px 24px 20px" }}>
