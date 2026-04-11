@@ -75,6 +75,11 @@ export default function MyPage() {
           <Coins size={16} /> 포인트 충전하기
         </button>
 
+        <button onClick={() => router.push("/mypage/history")}
+          style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "#d1d5db", padding: "13px 0", borderRadius: 14, fontSize: 14, fontWeight: 600, cursor: "pointer", marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontFamily: "inherit" }}>
+          <Coins size={15} color="#facc15" /> 포인트 사용/충전 내역
+        </button>
+
         <button onClick={handleLogout}
           style={{ width: "100%", background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "#f87171", padding: "12px 0", borderRadius: 14, fontSize: 14, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontFamily: "inherit" }}>
           <LogOut size={15} /> 로그아웃
