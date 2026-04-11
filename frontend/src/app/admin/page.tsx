@@ -142,6 +142,16 @@ export default function AdminPage() {
   const [userTotal, setUserTotal] = useState(0);
   const [userPage, setUserPage] = useState(1);
 
+  // 회원 수정 모달
+  const [editTarget, setEditTarget] = useState<UserRow | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editPw, setEditPw] = useState("");
+  const [editPoints, setEditPoints] = useState(0);
+  const [editRole, setEditRole] = useState("user");
+  const [editActive, setEditActive] = useState(true);
+  const [editLoading, setEditLoading] = useState(false);
+  const [editMsg, setEditMsg] = useState("");
+
   // collect
   const [collectStatus, setCollectStatus] = useState<CollectStatus | null>(null);
   const [collectSido, setCollectSido] = useState("all");
@@ -231,6 +241,39 @@ export default function AdminPage() {
     }
   }
 
+  function openEdit(u: UserRow) {
+    setEditTarget(u);
+    setEditName(u.name);
+    setEditPw("");
+    setEditPoints(u.points);
+    setEditRole(u.role);
+    setEditActive(u.is_active);
+    setEditMsg("");
+  }
+
+  async function handleEditSave() {
+    if (!editTarget) return;
+    setEditLoading(true);
+    setEditMsg("");
+    try {
+      const body: Record<string, unknown> = {
+        name: editName,
+        points: editPoints,
+        role: editRole,
+        is_active: editActive,
+      };
+      if (editPw.trim()) body.password = editPw;
+      await api.patch(`/admin/users/${editTarget.id}`, body);
+      setEditMsg("✅ 수정 완료!");
+      await loadUsers(userPage);
+      setTimeout(() => setEditTarget(null), 800);
+    } catch {
+      setEditMsg("❌ 수정 중 오류가 발생했습니다.");
+    } finally {
+      setEditLoading(false);
+    }
+  }
+
   async function handleFixStatus() {
     setFixLoading(true);
     setFixMsg("");
@@ -250,10 +293,64 @@ export default function AdminPage() {
 
   const userPageMax = Math.ceil(userTotal / 20);
 
+  // ── 회원 수정 모달 ────────────────────────────────────────────────────────────
+  const EditModal = editTarget && (
+    <div style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+      <div style={{ background: "#111128", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 20, padding: 28, width: "100%", maxWidth: 440 }}>
+        <h3 style={{ margin: "0 0 20px", fontSize: 16, fontWeight: 700, color: "white" }}>회원 정보 수정</h3>
+        <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 20 }}>{editTarget.email}</div>
+
+        {[
+          { label: "이름", value: editName, onChange: (v: string) => setEditName(v), type: "text" },
+          { label: "비밀번호 초기화 (빈칸이면 유지)", value: editPw, onChange: (v: string) => setEditPw(v), type: "password" },
+          { label: "포인트", value: String(editPoints), onChange: (v: string) => setEditPoints(Number(v)), type: "number" },
+        ].map(({ label, value, onChange, type }) => (
+          <div key={label} style={{ marginBottom: 14 }}>
+            <label style={{ fontSize: 12, color: "#9ca3af", display: "block", marginBottom: 6 }}>{label}</label>
+            <input type={type} value={value} onChange={e => onChange(e.target.value)}
+              style={{ width: "100%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "10px 14px", fontSize: 14, color: "white", outline: "none", fontFamily: "inherit", boxSizing: "border-box" }} />
+          </div>
+        ))}
+
+        <div style={{ marginBottom: 14 }}>
+          <label style={{ fontSize: 12, color: "#9ca3af", display: "block", marginBottom: 6 }}>역할</label>
+          <select value={editRole} onChange={e => setEditRole(e.target.value)}
+            style={{ width: "100%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "10px 14px", fontSize: 14, color: "white", outline: "none", fontFamily: "inherit" }}>
+            <option value="user" style={{ background: "#111" }}>회원</option>
+            <option value="admin" style={{ background: "#111" }}>관리자</option>
+          </select>
+        </div>
+
+        <div style={{ marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>
+          <label style={{ fontSize: 12, color: "#9ca3af" }}>계정 활성화</label>
+          <div onClick={() => setEditActive(v => !v)}
+            style={{ width: 42, height: 24, borderRadius: 12, background: editActive ? "#4f46e5" : "rgba(255,255,255,0.1)", position: "relative", cursor: "pointer", transition: "background 0.2s" }}>
+            <div style={{ position: "absolute", top: 3, left: editActive ? 21 : 3, width: 18, height: 18, borderRadius: "50%", background: "white", transition: "left 0.2s" }} />
+          </div>
+          <span style={{ fontSize: 12, color: editActive ? "#4ade80" : "#f87171" }}>{editActive ? "활성" : "비활성"}</span>
+        </div>
+
+        {editMsg && <div style={{ fontSize: 13, color: editMsg.startsWith("✅") ? "#4ade80" : "#f87171", marginBottom: 14 }}>{editMsg}</div>}
+
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={() => setEditTarget(null)}
+            style={{ flex: 1, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#9ca3af", padding: "12px 0", borderRadius: 12, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
+            취소
+          </button>
+          <button onClick={handleEditSave} disabled={editLoading}
+            style={{ flex: 1, background: "linear-gradient(135deg,#4f46e5,#9333ea)", border: "none", color: "white", padding: "12px 0", borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: editLoading ? 0.7 : 1 }}>
+            {editLoading ? "저장 중..." : "저장"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   // ── Render ───────────────────────────────────────────────────────────────────
 
   return (
     <div style={{ minHeight: "100vh", background: "#0a0a0f", color: "white", padding: "0 16px 60px" }}>
+      {EditModal}
 
       {/* Header */}
       <header style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", marginBottom: 32 }}>
@@ -325,7 +422,7 @@ export default function AdminPage() {
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr>
-                    {["이메일", "이름", "포인트", "역할", "상태", "가입일"].map((h) => (
+                    {["이메일", "이름", "포인트", "역할", "상태", "가입일", ""].map((h) => (
                       <th key={h} style={th}>{h}</th>
                     ))}
                   </tr>
@@ -368,6 +465,12 @@ export default function AdminPage() {
                       </td>
                       <td style={{ ...td, color: "#6b7280" }}>
                         {new Date(u.created_at).toLocaleDateString("ko-KR")}
+                      </td>
+                      <td style={td}>
+                        <button onClick={() => openEdit(u)}
+                          style={{ fontSize: 11, color: "#a5b4fc", background: "rgba(99,102,241,0.15)", border: "1px solid rgba(99,102,241,0.3)", padding: "4px 12px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit" }}>
+                          수정
+                        </button>
                       </td>
                     </tr>
                   ))}

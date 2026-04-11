@@ -1,11 +1,13 @@
 import asyncio
+import uuid
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from pydantic import BaseModel
 from sqlalchemy import select, func, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
 from models.models import User, Business, SearchLog, ViewLog, ChargeLog, PointLog
-from routers.auth import get_current_user
+from routers.auth import get_current_user, hash_password
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -65,6 +67,52 @@ async def list_users(
             }
             for u in users
         ],
+    }
+
+
+class UserUpdateBody(BaseModel):
+    name: str | None = None
+    password: str | None = None
+    points: int | None = None
+    role: str | None = None
+    is_active: bool | None = None
+
+
+@router.patch("/users/{user_id}")
+async def update_user(
+    user_id: str,
+    body: UserUpdateBody,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    """회원 정보 수정 (이름/비밀번호/포인트/역할/활성화)"""
+    result = await db.execute(select(User).where(User.id == uuid.UUID(user_id)))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="회원을 찾을 수 없습니다")
+
+    if body.name is not None:
+        user.name = body.name
+    if body.password:
+        user.password = hash_password(body.password)
+    if body.points is not None:
+        user.points = body.points
+    if body.role is not None:
+        user.role = body.role
+    if body.is_active is not None:
+        user.is_active = body.is_active
+
+    await db.commit()
+    return {
+        "message": "회원 정보가 수정되었습니다",
+        "user": {
+            "id": str(user.id),
+            "email": user.email,
+            "name": user.name,
+            "points": user.points,
+            "role": user.role,
+            "is_active": user.is_active,
+        }
     }
 
 
