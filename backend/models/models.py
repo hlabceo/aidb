@@ -26,7 +26,7 @@ class Business(Base):
     __tablename__ = "businesses"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    opn_svc_id: Mapped[str | None] = mapped_column(String(20))
+    opn_svc_id: Mapped[str | None] = mapped_column(String(100))
     opn_svc_nm: Mapped[str | None] = mapped_column(String(100))
     bsn_nm: Mapped[str] = mapped_column(String(255), nullable=False)
     bsn_nm_masked: Mapped[str | None] = mapped_column(String(255))
