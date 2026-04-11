@@ -128,6 +128,9 @@ function SearchContent() {
           <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
             {user ? (
               <>
+                {user.role === "admin" && (
+                  <Link href="/admin" style={{ fontSize: 11, fontWeight: 600, color: "#f59e0b", background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.3)", padding: "4px 10px", borderRadius: 999, textDecoration: "none" }}>⚙ 관리자</Link>
+                )}
                 <span style={{ fontSize: 12, color: "#facc15", background: "rgba(234,179,8,0.1)", padding: "4px 8px", borderRadius: 999 }}>{user.points.toLocaleString()}P</span>
                 <Link href="/mypage" className="header-username" style={{ fontSize: 12, color: "#9ca3af", textDecoration: "none", cursor: "pointer" }}>{user.name}</Link>
               </>

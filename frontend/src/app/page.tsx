@@ -71,6 +71,9 @@ export default function HomePage() {
           <nav style={{ display: "flex", alignItems: "center", gap: 6 }}>
             {user ? (
               <>
+                {user.role === "admin" && (
+                  <Link href="/admin" style={{ fontSize: 12, fontWeight: 600, color: "#f59e0b", background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.3)", padding: "5px 12px", borderRadius: 999, textDecoration: "none", cursor: "pointer" }}>⚙ 관리자</Link>
+                )}
                 <span style={{ fontSize: 12, color: "#facc15", background: "rgba(234,179,8,0.1)", padding: "5px 10px", borderRadius: 999 }}>{user.points.toLocaleString()}P</span>
                 <Link href="/mypage" className="home-nav-username" style={{ fontSize: 12, color: "#9ca3af", padding: "5px 10px", borderRadius: 999, textDecoration: "none", cursor: "pointer" }}>{user.name}</Link>
                 <button onClick={logout} className="home-nav-logout" style={{ fontSize: 12, color: "#6b7280", background: "none", border: "none", cursor: "pointer", padding: "5px 8px" }}>로그아웃</button>
