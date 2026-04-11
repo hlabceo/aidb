@@ -130,7 +130,7 @@ async def fetch_page(
     return resp.json()
 
 
-async def collect(svc_key: str, max_records: int = 10000) -> dict:
+async def collect(svc_key: str, max_records: int = 10000, start_page: int = 1) -> dict:
     """
     단일 업종 수집 실행
     Returns: {"svc": ..., "saved": ..., "pages": ..., "total_api": ...}
@@ -148,12 +148,13 @@ async def collect(svc_key: str, max_records: int = 10000) -> dict:
     print(f"\n{'='*55}")
     print(f" 수집 시작: {svc_nm}")
     print(f" URL: {url}")
+    print(f" 시작 페이지: {start_page}")
     print(f" 최대: {max_records:,}건")
     print(f"{'='*55}")
 
     total_saved = 0
     total_api   = 0
-    page        = 1
+    page        = start_page
 
     async with httpx.AsyncClient() as http:
         while total_saved < max_records:
@@ -201,15 +202,16 @@ async def collect(svc_key: str, max_records: int = 10000) -> dict:
 
 async def main():
     parser = argparse.ArgumentParser(description="행정안전부 인허가 데이터 수집")
-    parser.add_argument("--svc",  default="swimming_pools", help=f"서비스키 또는 'all'. 가능: {list(SERVICE_MAP.keys())}")
-    parser.add_argument("--max",  type=int, default=10000,  help="최대 수집 건수")
+    parser.add_argument("--svc",        default="swimming_pools", help=f"서비스키 또는 'all'. 가능: {list(SERVICE_MAP.keys())}")
+    parser.add_argument("--max",        type=int, default=10000,  help="최대 수집 건수")
+    parser.add_argument("--start-page", type=int, default=1,      help="시작 페이지 (이어받기용)")
     args = parser.parse_args()
 
     if args.svc == "all":
         for key in SERVICE_MAP.keys():
-            await collect(key, args.max)
+            await collect(key, args.max, args.start_page)
     else:
-        result = await collect(args.svc, args.max)
+        result = await collect(args.svc, args.max, args.start_page)
         print(result)
 
 
