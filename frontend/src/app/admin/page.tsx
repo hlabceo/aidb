@@ -34,14 +34,14 @@ interface UserRow {
   created_at: string;
 }
 
-interface SidoCount {
-  sido: string;
+interface UptaeCount {
+  uptae_nm: string;
   count: number;
 }
 
 interface CollectStatus {
   total: number;
-  by_sido: SidoCount[];
+  by_uptae: UptaeCount[];
 }
 
 interface SearchLog {
@@ -54,25 +54,15 @@ type Tab = "stats" | "users" | "collect" | "searches";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const SIDO_LIST = [
-  "all",
-  "서울",
-  "부산",
-  "대구",
-  "인천",
-  "광주",
-  "대전",
-  "울산",
-  "세종",
-  "경기",
-  "강원",
-  "충북",
-  "충남",
-  "전북",
-  "전남",
-  "경북",
-  "경남",
-  "제주",
+const SVC_LIST: { key: string; label: string }[] = [
+  { key: "all", label: "all (전체 업종)" },
+  { key: "beauty_salons", label: "미용업" },
+  { key: "fitness_centers", label: "체력단련장" },
+  { key: "swimming_pools", label: "수영장업" },
+  { key: "billiard_halls", label: "당구장" },
+  { key: "public_baths", label: "목욕장업" },
+  { key: "golf_practice_ranges", label: "골프연습장" },
+  { key: "sledding", label: "썰매장" },
 ];
 
 // ─── Style helpers ─────────────────────────────────────────────────────────────
@@ -154,8 +144,9 @@ export default function AdminPage() {
 
   // collect
   const [collectStatus, setCollectStatus] = useState<CollectStatus | null>(null);
-  const [collectSido, setCollectSido] = useState("all");
+  const [collectSvc, setCollectSvc] = useState("all");
   const [collectMax, setCollectMax] = useState(50000);
+  const [collectStartPage, setCollectStartPage] = useState(1);
   const [collectMsg, setCollectMsg] = useState("");
   const [fixMsg, setFixMsg] = useState("");
   const [collectLoading, setCollectLoading] = useState(false);
@@ -232,8 +223,8 @@ export default function AdminPage() {
     setCollectLoading(true);
     setCollectMsg("");
     try {
-      await api.post("/admin/collect", { sido: collectSido, max: collectMax });
-      setCollectMsg("백그라운드에서 수집을 시작했습니다.");
+      const { data } = await api.post("/admin/collect", { svc: collectSvc, max: collectMax, start_page: collectStartPage });
+      setCollectMsg(data?.message || "백그라운드에서 수집을 시작했습니다.");
     } catch {
       setCollectMsg("수집 요청 중 오류가 발생했습니다.");
     } finally {
@@ -521,19 +512,19 @@ export default function AdminPage() {
                   현황 새로고침
                 </button>
               </div>
-              {collectStatus && collectStatus.by_sido.length > 0 ? (
+              {collectStatus && collectStatus.by_uptae.length > 0 ? (
                 <div style={{ overflowX: "auto" }}>
                   <table style={{ width: "100%", borderCollapse: "collapse" }}>
                     <thead>
                       <tr>
-                        <th style={th}>시도</th>
+                        <th style={th}>업종</th>
                         <th style={{ ...th, textAlign: "right" }}>건수</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {collectStatus.by_sido.map((row) => (
-                        <tr key={row.sido}>
-                          <td style={td}>{row.sido}</td>
+                      {collectStatus.by_uptae.map((row) => (
+                        <tr key={row.uptae_nm}>
+                          <td style={td}>{row.uptae_nm || "(미분류)"}</td>
                           <td style={{ ...td, textAlign: "right", color: "#a5b4fc" }}>{row.count.toLocaleString()}</td>
                         </tr>
                       ))}
@@ -549,18 +540,21 @@ export default function AdminPage() {
 
             {/* 수집 트리거 */}
             <div style={card}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: "white", marginBottom: 16 }}>수집 트리거</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "white", marginBottom: 4 }}>수집 트리거</div>
+              <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 16 }}>
+                서버에서 백그라운드로 실행됩니다. SSH 수집과 병행 가능합니다.
+              </div>
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
                 <div>
-                  <label style={{ fontSize: 12, color: "#6b7280", display: "block", marginBottom: 6 }}>시도 선택</label>
+                  <label style={{ fontSize: 12, color: "#6b7280", display: "block", marginBottom: 6 }}>업종 선택</label>
                   <select
-                    value={collectSido}
-                    onChange={(e) => setCollectSido(e.target.value)}
+                    value={collectSvc}
+                    onChange={(e) => setCollectSvc(e.target.value)}
                     style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: "white", borderRadius: 10, padding: "8px 14px", fontSize: 13, fontFamily: "inherit", cursor: "pointer", appearance: "auto" }}
                   >
-                    {SIDO_LIST.map((s) => (
-                      <option key={s} value={s} style={{ background: "#1a1a2e" }}>
-                        {s === "all" ? "all (전체)" : s}
+                    {SVC_LIST.map((s) => (
+                      <option key={s.key} value={s.key} style={{ background: "#1a1a2e" }}>
+                        {s.label}
                       </option>
                     ))}
                   </select>
@@ -572,6 +566,15 @@ export default function AdminPage() {
                     value={collectMax}
                     onChange={(e) => setCollectMax(Number(e.target.value))}
                     style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: "white", borderRadius: 10, padding: "8px 14px", fontSize: 13, fontFamily: "inherit", width: 110 }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, color: "#6b7280", display: "block", marginBottom: 6 }}>시작 페이지 (이어받기)</label>
+                  <input
+                    type="number"
+                    value={collectStartPage}
+                    onChange={(e) => setCollectStartPage(Number(e.target.value))}
+                    style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: "white", borderRadius: 10, padding: "8px 14px", fontSize: 13, fontFamily: "inherit", width: 90 }}
                   />
                 </div>
                 <button

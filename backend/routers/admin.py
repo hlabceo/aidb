@@ -139,24 +139,27 @@ async def trigger_collect(
 ):
     """
     공공데이터 수집 트리거 (백그라운드 실행)
-    body: { "sido": "서울", "max": 10000 }
+    body: { "svc": "swimming_pools", "max": 10000, "start_page": 1 }
+    svc = 업종 서비스키 또는 "all"
     """
-    from services.collector import collect, SIDO_CODES
-    sido = body.get("sido", "서울")
-    max_records = body.get("max", 5000)
+    from services.collector import collect, SERVICE_MAP
+    svc = body.get("svc", "swimming_pools")
+    max_records = body.get("max", 10000)
+    start_page = body.get("start_page", 1)
 
-    if sido != "all" and sido not in SIDO_CODES:
-        raise HTTPException(status_code=400, detail=f"올바른 시도명을 입력하세요: {list(SIDO_CODES.keys())}")
+    if svc != "all" and svc not in SERVICE_MAP:
+        raise HTTPException(status_code=400, detail=f"올바른 서비스키를 입력하세요: {list(SERVICE_MAP.keys())}")
 
     async def run_collect():
-        if sido == "all":
-            for nm in SIDO_CODES.keys():
-                await collect(nm, max_records)
+        if svc == "all":
+            for key in SERVICE_MAP.keys():
+                await collect(key, max_records, start_page)
         else:
-            await collect(sido, max_records)
+            await collect(svc, max_records, start_page)
 
     background_tasks.add_task(run_collect)
-    return {"message": f"{sido} 데이터 수집을 백그라운드에서 시작했습니다", "max": max_records}
+    svc_nm = SERVICE_MAP[svc][0] if svc != "all" else "전체 업종"
+    return {"message": f"{svc_nm} 수집을 백그라운드에서 시작했습니다", "max": max_records, "start_page": start_page}
 
 
 @router.get("/collect/status")
@@ -164,16 +167,15 @@ async def collect_status(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_admin),
 ):
-    """현재 수집된 데이터 현황"""
+    """현재 수집된 데이터 현황 (업종별)"""
     total = (await db.execute(select(func.count()).select_from(Business))).scalar()
-    from sqlalchemy import text
-    sido_result = await db.execute(
-        select(Business.sido, func.count().label("cnt"))
-        .group_by(Business.sido)
+    uptae_result = await db.execute(
+        select(Business.uptae_nm, func.count().label("cnt"))
+        .group_by(Business.uptae_nm)
         .order_by(desc("cnt"))
     )
-    sido_stats = [{"sido": row.sido, "count": row.cnt} for row in sido_result]
-    return {"total": total, "by_sido": sido_stats}
+    uptae_stats = [{"uptae_nm": row.uptae_nm, "count": row.cnt} for row in uptae_result]
+    return {"total": total, "by_uptae": uptae_stats}
 
 
 @router.get("/test-api")
