@@ -172,6 +172,7 @@ async def search(
         "수영장": "수영장업",
         "헬스장": "체력단련장", "헬스": "체력단련장", "피트니스": "체력단련장", "gym": "체력단련장",
         "체육관": "체력단련장", "스포츠센터": "체력단련장", "휘트니스": "체력단련장", "크로스핏": "체력단련장",
+        "당구": "당구장", "포켓볼": "당구장", "billiard": "당구장",
     }
     synonym = SYNONYMS.get(q.strip())
     extra_cond = [Business.uptae_nm.ilike(f"%{synonym}%")] if synonym else []
