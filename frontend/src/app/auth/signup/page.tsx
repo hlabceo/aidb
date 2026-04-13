@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Sparkles, Mail, Lock, User, Phone, Eye, EyeOff,
-  Loader2, Gift, CheckCircle, ChevronRight, X, ShieldCheck,
+  LoaderCircle, Gift, CheckCircle, ChevronRight, X, ShieldCheck,
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import api from "@/lib/api";
@@ -263,7 +263,7 @@ export default function SignupPage() {
 
           <button type="submit" disabled={loading || !allRequired || !otpVerified}
             style={{ width: "100%", background: allRequired && otpVerified ? "linear-gradient(135deg, #4f46e5, #9333ea)" : "rgba(99,102,241,0.3)", border: "none", color: "white", padding: "14px 0", borderRadius: 14, fontSize: 15, fontWeight: 600, cursor: allRequired && otpVerified ? "pointer" : "not-allowed", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "opacity 0.2s", fontFamily: "inherit" }}>
-            {loading ? <Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} /> : null}
+            {loading ? <LoaderCircle size={16} style={{ animation: "spin 1s linear infinite" }} /> : null}
             무료 회원가입
           </button>
 

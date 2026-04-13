@@ -4,7 +4,7 @@ import { useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import api from "@/lib/api";
-import { Loader2 } from "lucide-react";
+import { LoaderCircle } from "lucide-react";
 
 function CallbackInner() {
   const router = useRouter();
@@ -30,7 +30,7 @@ function CallbackInner() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#0a0a0f", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
-      <Loader2 size={32} color="#818cf8" style={{ animation: "spin 1s linear infinite" }} />
+      <LoaderCircle size={32} color="#818cf8" style={{ animation: "spin 1s linear infinite" }} />
       <p style={{ color: "#6b7280", fontSize: 14 }}>로그인 처리 중...</p>
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
@@ -41,7 +41,7 @@ export default function CallbackPage() {
   return (
     <Suspense fallback={
       <div style={{ minHeight: "100vh", background: "#0a0a0f", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <Loader2 size={32} color="#818cf8" style={{ animation: "spin 1s linear infinite" }} />
+        <LoaderCircle size={32} color="#818cf8" style={{ animation: "spin 1s linear infinite" }} />
       </div>
     }>
       <CallbackInner />

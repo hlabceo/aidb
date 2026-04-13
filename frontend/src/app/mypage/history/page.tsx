@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Sparkles, Coins, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, Sparkles, Coins, LoaderCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
@@ -111,7 +111,7 @@ export default function HistoryPage() {
         {/* 내역 리스트 */}
         {loading ? (
           <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: "60px 0" }}>
-            <Loader2 size={28} color="#6366f1" style={{ animation: "spin 1s linear infinite" }} />
+            <LoaderCircle size={28} color="#6366f1" style={{ animation: "spin 1s linear infinite" }} />
             <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
           </div>
         ) : logs.length === 0 ? (

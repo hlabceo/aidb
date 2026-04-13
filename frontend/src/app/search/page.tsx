@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  Search, ArrowLeft, Download, Loader2, Sparkles,
+  Search, ArrowLeft, Download, LoaderCircle, Sparkles,
   Phone, PhoneOff, MapPin, Calendar, CheckCircle,
 } from "lucide-react";
 import api from "@/lib/api";
@@ -246,7 +246,7 @@ function SearchContent() {
         {/* 로딩 */}
         {loading && (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 60, gap: 12, color: "#6b7280" }}>
-            <Loader2 size={20} style={{ animation: "spin 1s linear infinite" }} />
+            <LoaderCircle size={20} style={{ animation: "spin 1s linear infinite" }} />
             <span>검색 중...</span>
           </div>
         )}
@@ -369,7 +369,7 @@ function SearchContent() {
             </button>
             <button onClick={handleDownload} disabled={downloading}
               style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600, color: "white", background: downloading ? "rgba(99,102,241,0.5)" : "linear-gradient(135deg,#4f46e5,#9333ea)", border: "none", padding: "9px 16px", borderRadius: 10, cursor: downloading ? "not-allowed" : "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
-              {downloading ? <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} /> : <Download size={14} />}
+              {downloading ? <LoaderCircle size={14} style={{ animation: "spin 1s linear infinite" }} /> : <Download size={14} />}
               <span className="dl-btn-full">{totalCost > 0 ? `${totalCost.toLocaleString()}P 차감 후 엑셀 다운로드` : "엑셀 다운로드"}</span>
               <span className="dl-btn-short">엑셀 다운로드</span>
             </button>

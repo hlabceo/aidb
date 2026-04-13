@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Sparkles, Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Sparkles, Mail, Lock, Eye, EyeOff, LoaderCircle } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -121,7 +121,7 @@ export default function LoginPage() {
 
           <button type="submit" disabled={loading}
             style={{ width: "100%", background: "linear-gradient(135deg, #4f46e5, #9333ea)", border: "none", color: "white", padding: "14px 0", borderRadius: 14, fontSize: 15, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, opacity: loading ? 0.7 : 1, transition: "opacity 0.2s", fontFamily: "inherit" }}>
-            {loading && <Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} />}
+            {loading && <LoaderCircle size={16} style={{ animation: "spin 1s linear infinite" }} />}
             로그인
           </button>
 

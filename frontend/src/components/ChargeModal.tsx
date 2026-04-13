@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, Coins, Gift, Zap, CheckCircle, Loader2 } from "lucide-react";
+import { X, Coins, Gift, Zap, CheckCircle, LoaderCircle } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import api from "@/lib/api";
 import { useRouter } from "next/navigation";
@@ -118,7 +118,7 @@ export default function ChargeModal({ onClose }: Props) {
         ) : (
           <button onClick={handleCharge} disabled={!selected || loading}
             style={{ width: "100%", background: selected ? "linear-gradient(135deg, #4f46e5, #9333ea)" : "rgba(99,102,241,0.2)", border: "none", color: "white", padding: "14px 0", borderRadius: 14, fontSize: 15, fontWeight: 600, cursor: selected ? "pointer" : "not-allowed", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "opacity 0.2s", fontFamily: "inherit" }}>
-            {loading ? <Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} /> : <Coins size={16} />}
+            {loading ? <LoaderCircle size={16} style={{ animation: "spin 1s linear infinite" }} /> : <Coins size={16} />}
             {selected ? `${selectedPkg?.points.toLocaleString()}P 충전하기` : "패키지를 선택하세요"}
           </button>
         )}

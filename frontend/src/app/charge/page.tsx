@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Coins, Zap, CheckCircle, Loader2, Gift, ChevronLeft } from "lucide-react";
+import { Coins, Zap, CheckCircle, LoaderCircle, Gift, ChevronLeft } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import api from "@/lib/api";
 
@@ -92,7 +92,7 @@ export default function ChargePage() {
         {/* 패키지 선택 */}
         {pkgLoading ? (
           <div style={{ display: "flex", justifyContent: "center", padding: "40px 0" }}>
-            <Loader2 size={24} color="#6366f1" style={{ animation: "spin 1s linear infinite" }} />
+            <LoaderCircle size={24} color="#6366f1" style={{ animation: "spin 1s linear infinite" }} />
           </div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
@@ -177,7 +177,7 @@ export default function ChargePage() {
               fontFamily: "inherit",
             }}
           >
-            {loading ? <Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} /> : <Coins size={16} />}
+            {loading ? <LoaderCircle size={16} style={{ animation: "spin 1s linear infinite" }} /> : <Coins size={16} />}
             {selected ? `${selectedPkg?.points.toLocaleString()}P 충전하기` : "패키지를 선택하세요"}
           </button>
         )}
