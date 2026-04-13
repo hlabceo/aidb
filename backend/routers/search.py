@@ -189,9 +189,6 @@ async def search(
         except Exception:
             pass
 
-    stmt = select(Business)
-    conditions = []
-
     # 동의어 처리 (검색어 → DB 업종명 매핑)
     SYNONYMS = {
         "미용실": "미용업", "헤어샵": "미용업", "헤어": "미용업", "뷰티": "미용업",
@@ -204,35 +201,46 @@ async def search(
         "골프": "골프연습장", "골프장": "골프연습장", "스크린골프": "골프연습장", "연습장": "골프연습장",
     }
     synonym = SYNONYMS.get(q.strip())
-    extra_cond = [Business.uptae_nm.ilike(f"%{synonym}%")] if synonym else []
 
-    conditions.append(
-        or_(
-            Business.bsn_nm.ilike(f"%{q}%"),
-            Business.addr.ilike(f"%{q}%"),
-            Business.uptae_nm.ilike(f"%{q}%"),
-            *extra_cond,
+    conditions = []
+
+    # ── 검색어 조건 ──────────────────────────────────────────────
+    if synonym:
+        # 동의어 매핑된 경우: uptae_nm 정확 매치 (btree 인덱스 사용 → 빠름)
+        conditions.append(Business.uptae_nm == synonym)
+    else:
+        # 일반 텍스트 검색: pg_trgm GIN 인덱스 사용
+        conditions.append(
+            or_(
+                Business.bsn_nm.ilike(f"%{q}%"),
+                Business.uptae_nm.ilike(f"%{q}%"),
+            )
         )
-    )
 
+    # ── 필터 조건 (인덱스 활용) ───────────────────────────────────
     if sido and sido != "전국":
-        conditions.append(Business.sido.ilike(f"%{sido}%"))
+        # sido 컬럼에 "서울" → "서울특별시" 포함 매칭 (LIKE 'sido%' → 인덱스 사용)
+        conditions.append(Business.sido.like(f"{sido}%"))
     if sigungu:
-        conditions.append(Business.sigungu.ilike(f"%{sigungu}%"))
+        conditions.append(Business.sigungu.like(f"{sigungu}%"))
     if uptae:
-        conditions.append(Business.uptae_nm.ilike(f"%{uptae}%"))
+        conditions.append(Business.uptae_nm == uptae)
     if status and status != "전체":
         if status == "영업중":
-            conditions.append(or_(Business.status == "영업중", Business.status.ilike("%영업%")))
+            conditions.append(or_(Business.status == "영업중", Business.status.like("%영업%")))
         else:
             conditions.append(Business.status == status)
 
+    # ── COUNT (서브쿼리 없이 직접 카운트 → 빠름) ─────────────────
+    count_stmt = select(func.count(Business.id))
     for cond in conditions:
-        stmt = stmt.where(cond)
-
-    count_stmt = select(func.count()).select_from(stmt.subquery())
+        count_stmt = count_stmt.where(cond)
     total = (await db.execute(count_stmt)).scalar()
 
+    # ── 데이터 조회 ───────────────────────────────────────────────
+    stmt = select(Business)
+    for cond in conditions:
+        stmt = stmt.where(cond)
     stmt = stmt.order_by(Business.bsn_nm).offset((page - 1) * size).limit(size)
     rows = (await db.execute(stmt)).scalars().all()
 
