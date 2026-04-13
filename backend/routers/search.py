@@ -47,9 +47,9 @@ def mask_tel(tel: str | None) -> str:
 
 
 def get_point_cost(b: Business) -> int:
-    """전화번호 없으면 5P, 있으면 30P"""
+    """전화번호 없으면 15P, 있으면 30P"""
     if not b.tel or not b.tel.strip():
-        return 5
+        return 15
     return settings.POINT_PER_VIEW
 
 
@@ -423,21 +423,28 @@ async def download_excel(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    import uuid as _uuid
     ids = body.get("ids", [])
     if not ids:
         raise HTTPException(status_code=400, detail="선택된 항목이 없습니다")
 
+    # string → UUID 변환 (asyncpg 타입 오류 방지)
+    try:
+        uuid_ids = [_uuid.UUID(i) for i in ids]
+    except Exception:
+        raise HTTPException(status_code=400, detail="잘못된 ID 형식입니다")
+
     vl_res = await db.execute(
         select(ViewLog.business_id).where(
             ViewLog.user_id == current_user.id,
-            ViewLog.business_id.in_(ids),
+            ViewLog.business_id.in_(uuid_ids),
         )
     )
     already_viewed = {str(row[0]) for row in vl_res.fetchall()}
-    new_ids = [i for i in ids if i not in already_viewed]
+    new_uuid_ids = [uid for uid in uuid_ids if str(uid) not in already_viewed]
 
-    if new_ids:
-        new_bizs = (await db.execute(select(Business).where(Business.id.in_(new_ids)))).scalars().all()
+    if new_uuid_ids:
+        new_bizs = (await db.execute(select(Business).where(Business.id.in_(new_uuid_ids)))).scalars().all()
         required_points = sum(get_point_cost(b) for b in new_bizs)
 
         if current_user.points < required_points:
@@ -451,14 +458,13 @@ async def download_excel(
             type="use",
             amount=-required_points,
             balance=current_user.points,
-            description=f"{len(new_ids)}건 엑셀 다운로드",
+            description=f"{len(new_uuid_ids)}건 엑셀 다운로드",
         ))
         for b in new_bizs:
             db.add(ViewLog(user_id=current_user.id, business_id=b.id, points_used=get_point_cost(b)))
         await db.commit()
 
-    all_ids = list(set(ids))
-    result = await db.execute(select(Business).where(Business.id.in_(all_ids)))
+    result = await db.execute(select(Business).where(Business.id.in_(uuid_ids)))
     businesses = result.scalars().all()
 
     wb = openpyxl.Workbook()

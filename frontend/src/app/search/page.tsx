@@ -218,7 +218,7 @@ function SearchContent() {
 
         {/* 안내 */}
         <div style={{ background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.15)", borderRadius: 12, padding: "10px 14px", marginBottom: 16, fontSize: 12, color: "#818cf8", lineHeight: 1.6 }}>
-          📌 상위 3건은 무료 공개 · 이후 항목은 체크 후 포인트 차감으로 전체 정보 확인 · 전화번호 없는 가게는 <strong>5P</strong> 할인
+          📌 상위 3건은 무료 공개 · 이후 항목은 체크 후 포인트 차감으로 전체 정보 확인 · 전화번호 없는 가게는 <strong>15P</strong> 할인
         </div>
 
         {/* 로딩 */}
@@ -282,7 +282,7 @@ function SearchContent() {
                   )}
                   {!item.has_tel && item.masked && (
                     <span style={{ fontSize: 10, color: "#fbbf24", background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.2)", padding: "2px 7px", borderRadius: 6 }}>
-                      📵 전화번호없음 5P 할인
+                      📵 전화번호없음 15P 할인
                     </span>
                   )}
                   {item.masked && (
