@@ -140,7 +140,7 @@ export default function HomePage() {
             </div>
             <div style={{ marginTop: 14, display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
               {TAGS.map(tag => (
-                <button key={tag} type="button" onClick={() => { const { q, sido } = parseQuerySido(tag); const p = new URLSearchParams({ q }); if (sido) p.set("sido", sido); router.push(`/search?${p.toString()}`); }}
+                <button key={tag} type="button" onClick={() => { const { q, sido, sigungu } = parseQueryLocation(tag); const p = new URLSearchParams({ q }); if (sido) p.set("sido", sido); if (sigungu) p.set("sigungu", sigungu); router.push(`/search?${p.toString()}`); }}
                   style={{ fontSize: 12, color: "#6b7280", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", padding: "6px 14px", borderRadius: 999, cursor: "pointer", transition: "all 0.15s", fontFamily: "inherit" }}
                   onMouseEnter={e => { e.currentTarget.style.color = "#a5b4fc"; e.currentTarget.style.borderColor = "rgba(99,102,241,0.4)"; }}
                   onMouseLeave={e => { e.currentTarget.style.color = "#6b7280"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; }}>
