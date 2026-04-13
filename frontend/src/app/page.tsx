@@ -70,8 +70,11 @@ export default function HomePage() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim()) return;
-    const { q, sido, sigungu } = parseQueryLocation(query.trim());
+    const trimmed = query.trim();
+    const { q, sido, sigungu } = parseQueryLocation(trimmed);
     const params = new URLSearchParams({ q });
+    // Pass original query for display in search results header
+    if (trimmed !== q) params.set("originalQ", trimmed);
     if (sido) params.set("sido", sido);
     if (sigungu) params.set("sigungu", sigungu);
     router.push(`/search?${params.toString()}`);
@@ -140,7 +143,7 @@ export default function HomePage() {
             </div>
             <div style={{ marginTop: 14, display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
               {TAGS.map(tag => (
-                <button key={tag} type="button" onClick={() => { const { q, sido, sigungu } = parseQueryLocation(tag); const p = new URLSearchParams({ q }); if (sido) p.set("sido", sido); if (sigungu) p.set("sigungu", sigungu); router.push(`/search?${p.toString()}`); }}
+                <button key={tag} type="button" onClick={() => { const { q, sido, sigungu } = parseQueryLocation(tag); const p = new URLSearchParams({ q }); if (tag !== q) p.set("originalQ", tag); if (sido) p.set("sido", sido); if (sigungu) p.set("sigungu", sigungu); router.push(`/search?${p.toString()}`); }}
                   style={{ fontSize: 12, color: "#6b7280", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", padding: "6px 14px", borderRadius: 999, cursor: "pointer", transition: "all 0.15s", fontFamily: "inherit" }}
                   onMouseEnter={e => { e.currentTarget.style.color = "#a5b4fc"; e.currentTarget.style.borderColor = "rgba(99,102,241,0.4)"; }}
                   onMouseLeave={e => { e.currentTarget.style.color = "#6b7280"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; }}>

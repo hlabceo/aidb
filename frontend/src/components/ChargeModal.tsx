@@ -83,7 +83,7 @@ export default function ChargeModal({ onClose }: Props) {
         <div style={{ display: "flex", alignItems: "flex-start", gap: 8, background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.2)", borderRadius: 12, padding: "10px 12px", marginBottom: 18 }}>
           <Zap size={14} color="#818cf8" style={{ flexShrink: 0, marginTop: 2 }} />
           <p style={{ fontSize: 12, color: "#a5b4fc", margin: 0, lineHeight: 1.6 }}>
-            1포인트 = 1원 · 가게 정보 1건 열람 시 <strong>30P</strong> (전화번호없음 <strong>5P</strong>) 차감
+            1포인트 = 1원 · 가게 정보 1건 열람 시 <strong>30P</strong> (전화번호없음 <strong>15P</strong>) 차감
             <br /><span style={{ color: "#6b7280" }}>※ 나이스페이먼츠 연동 후 실결제 가능</span>
           </p>
         </div>
@@ -118,7 +118,7 @@ export default function ChargeModal({ onClose }: Props) {
         ) : (
           <button onClick={handleCharge} disabled={!selected || loading}
             style={{ width: "100%", background: selected ? "linear-gradient(135deg, #4f46e5, #9333ea)" : "rgba(99,102,241,0.2)", border: "none", color: "white", padding: "14px 0", borderRadius: 14, fontSize: 15, fontWeight: 600, cursor: selected ? "pointer" : "not-allowed", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "opacity 0.2s", fontFamily: "inherit" }}>
-            {loading ? <Loader2 size={16} className="animate-spin" /> : <Coins size={16} />}
+            {loading ? <Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} /> : <Coins size={16} />}
             {selected ? `${selectedPkg?.points.toLocaleString()}P 충전하기` : "패키지를 선택하세요"}
           </button>
         )}
@@ -127,6 +127,7 @@ export default function ChargeModal({ onClose }: Props) {
           나이스페이먼츠 결제 연동 후 실결제가 활성화됩니다
         </p>
       </div>
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

@@ -48,6 +48,8 @@ function SearchContent() {
   const searchParams = useSearchParams();
   const { user, refreshUser } = useAuthStore();
   const q = searchParams.get("q") || "";
+  // originalQ: the full query the user typed (e.g. "부산 헬스"), used for display only
+  const originalQ = searchParams.get("originalQ") || q;
   const sidoParam = searchParams.get("sido") || "전국";
   const sigunguParam = searchParams.get("sigungu") || "";
 
@@ -59,17 +61,20 @@ function SearchContent() {
   const [sigunguFilter, setSigunguFilter] = useState(sigunguParam);
   const [statusFilter, setStatusFilter] = useState("전체");
 
-  // URL 파라미터가 바뀌면 sido/sigungu state 동기화
+  // URL 파라미터가 바뀌면 sido/sigungu state 및 검색창 동기화
   useEffect(() => {
     setSido(sidoParam);
     setSigunguFilter(sigunguParam);
     setStatusFilter("전체");
-  }, [sidoParam, sigunguParam, q]);
+    setNewQuery(originalQ);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sidoParam, sigunguParam, q, originalQ]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [showCharge, setShowCharge] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState("");
-  const [newQuery, setNewQuery] = useState(q);
+  // Show the original query (e.g. "부산 헬스") in the search box, not just the parsed keyword
+  const [newQuery, setNewQuery] = useState(originalQ);
 
   const fetchResults = useCallback(async () => {
     if (!q) return;
@@ -146,8 +151,10 @@ function SearchContent() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newQuery.trim()) return;
-    const { q: parsedQ, sido: parsedSido, sigungu: parsedSigungu } = parseQueryLocation(newQuery.trim());
+    const trimmed = newQuery.trim();
+    const { q: parsedQ, sido: parsedSido, sigungu: parsedSigungu } = parseQueryLocation(trimmed);
     const params = new URLSearchParams({ q: parsedQ });
+    if (trimmed !== parsedQ) params.set("originalQ", trimmed);
     if (parsedSido) params.set("sido", parsedSido);
     if (parsedSigungu) params.set("sigungu", parsedSigungu);
     router.push(`/search?${params.toString()}`);
@@ -197,7 +204,7 @@ function SearchContent() {
         {/* 결과 요약 + 건수 선택 */}
         <div className="summary-row" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10, marginBottom: 12 }}>
           <span style={{ fontSize: 13, color: "#9ca3af" }}>
-            <strong style={{ color: "#a5b4fc" }}>&ldquo;{q}&rdquo;</strong> 검색결과{" "}
+            <strong style={{ color: "#a5b4fc" }}>&ldquo;{originalQ}&rdquo;</strong> 검색결과{" "}
             <strong style={{ color: "white", fontSize: 15 }}>{total.toLocaleString()}</strong>건
           </span>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -248,7 +255,7 @@ function SearchContent() {
         {!loading && results.length === 0 && q && (
           <div style={{ textAlign: "center", padding: 60, color: "#6b7280" }}>
             <Search size={40} style={{ marginBottom: 16, opacity: 0.3, display: "block", margin: "0 auto 16px" }} />
-            <p style={{ fontSize: 15, margin: "0 0 8px" }}>&ldquo;{q}&rdquo;에 대한 검색 결과가 없습니다</p>
+            <p style={{ fontSize: 15, margin: "0 0 8px" }}>&ldquo;{originalQ}&rdquo;에 대한 검색 결과가 없습니다</p>
             <p style={{ fontSize: 13, margin: 0 }}>다른 검색어나 지역을 선택해보세요</p>
           </div>
         )}

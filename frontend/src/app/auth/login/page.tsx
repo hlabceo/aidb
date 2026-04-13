@@ -121,7 +121,7 @@ export default function LoginPage() {
 
           <button type="submit" disabled={loading}
             style={{ width: "100%", background: "linear-gradient(135deg, #4f46e5, #9333ea)", border: "none", color: "white", padding: "14px 0", borderRadius: 14, fontSize: 15, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, opacity: loading ? 0.7 : 1, transition: "opacity 0.2s", fontFamily: "inherit" }}>
-            {loading && <Loader2 size={16} className="animate-spin" />}
+            {loading && <Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} />}
             로그인
           </button>
 
@@ -131,6 +131,7 @@ export default function LoginPage() {
           </p>
         </form>
       </div>
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
