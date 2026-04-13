@@ -45,25 +45,35 @@ export default function HomePage() {
     api.get("/search/stats").then(({ data }) => setStats(data)).catch(() => {});
   }, []);
 
-  // 검색어에서 도시명 분리
+  // 검색어에서 지역명 분리 ("김해시 수영장" → { q: "수영장", sido: null, sigungu: "김해시" })
   const SIDO_LIST_MAIN = ["서울","부산","대구","인천","광주","대전","울산","세종","경기","강원","충북","충남","전북","전남","경북","경남","제주"];
-  const parseQuerySido = (input: string) => {
+  const parseQueryLocation = (input: string) => {
     const parts = input.trim().split(/\s+/);
-    for (let i = 0; i < parts.length; i++) {
-      if (SIDO_LIST_MAIN.includes(parts[i])) {
-        const rest = parts.filter((_, idx) => idx !== i).join(" ").trim();
-        return { q: rest || parts[i], sido: parts[i] };
+    let sido: string | null = null;
+    let sigungu: string | null = null;
+    const remaining: string[] = [];
+
+    for (const part of parts) {
+      if (SIDO_LIST_MAIN.includes(part)) {
+        sido = part;
+      } else if (part.length >= 2 && /[시군구]$/.test(part)) {
+        sigungu = part;
+      } else {
+        remaining.push(part);
       }
     }
-    return { q: input.trim(), sido: null };
+
+    const q = remaining.join(" ").trim() || sigungu || sido || input.trim();
+    return { q, sido, sigungu };
   };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim()) return;
-    const { q, sido } = parseQuerySido(query.trim());
+    const { q, sido, sigungu } = parseQueryLocation(query.trim());
     const params = new URLSearchParams({ q });
     if (sido) params.set("sido", sido);
+    if (sigungu) params.set("sigungu", sigungu);
     router.push(`/search?${params.toString()}`);
   };
 

@@ -15,16 +15,25 @@ const PAGE_SIZES = [100, 300, 500, 1000];
 const SIDO_LIST = ["전국","서울","부산","대구","인천","광주","대전","울산","세종","경기","강원","충북","충남","전북","전남","경북","경남","제주"];
 const STATUS_LIST = ["전체","영업중","폐업","휴업"];
 
-// 검색어에서 도시명 분리 ("서울 수영장" → { q: "수영장", sido: "서울" })
-function parseQuerySido(input: string): { q: string; sido: string | null } {
+// 검색어에서 지역명 분리 ("김해시 수영장" → { q: "수영장", sido: null, sigungu: "김해시" })
+function parseQueryLocation(input: string): { q: string; sido: string | null; sigungu: string | null } {
   const parts = input.trim().split(/\s+/);
-  for (let i = 0; i < parts.length; i++) {
-    if (SIDO_LIST.includes(parts[i]) && parts[i] !== "전국") {
-      const rest = parts.filter((_, idx) => idx !== i).join(" ").trim();
-      return { q: rest || parts[i], sido: parts[i] };
+  let sido: string | null = null;
+  let sigungu: string | null = null;
+  const remaining: string[] = [];
+
+  for (const part of parts) {
+    if (SIDO_LIST.includes(part) && part !== "전국") {
+      sido = part;
+    } else if (part.length >= 2 && /[시군구]$/.test(part)) {
+      sigungu = part;
+    } else {
+      remaining.push(part);
     }
   }
-  return { q: input.trim(), sido: null };
+
+  const q = remaining.join(" ").trim() || sigungu || sido || input.trim();
+  return { q, sido, sigungu };
 }
 
 interface BizItem {
@@ -40,12 +49,14 @@ function SearchContent() {
   const { user, refreshUser } = useAuthStore();
   const q = searchParams.get("q") || "";
   const sidoParam = searchParams.get("sido") || "전국";
+  const sigunguParam = searchParams.get("sigungu") || "";
 
   const [results, setResults] = useState<BizItem[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [pageSize, setPageSize] = useState(100);
   const [sido, setSido] = useState(sidoParam);
+  const [sigunguFilter, setSigunguFilter] = useState(sigunguParam);
   const [statusFilter, setStatusFilter] = useState("전체");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [showCharge, setShowCharge] = useState(false);
@@ -59,6 +70,7 @@ function SearchContent() {
     try {
       const params: Record<string, string> = { q, size: String(pageSize), page: "1" };
       if (sido !== "전국") params.sido = sido;
+      if (sigunguFilter) params.sigungu = sigunguFilter;
       if (statusFilter !== "전체") params.status = statusFilter;
       const { data } = await api.get("/search", { params });
       setResults(data.items || []);
@@ -68,7 +80,7 @@ function SearchContent() {
     } finally {
       setLoading(false);
     }
-  }, [q, pageSize, sido, statusFilter]);
+  }, [q, pageSize, sido, sigunguFilter, statusFilter]);
 
   useEffect(() => { fetchResults(); }, [fetchResults]);
 
@@ -112,9 +124,10 @@ function SearchContent() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newQuery.trim()) return;
-    const { q: parsedQ, sido: parsedSido } = parseQuerySido(newQuery.trim());
+    const { q: parsedQ, sido: parsedSido, sigungu: parsedSigungu } = parseQueryLocation(newQuery.trim());
     const params = new URLSearchParams({ q: parsedQ });
     if (parsedSido) params.set("sido", parsedSido);
+    if (parsedSigungu) params.set("sigungu", parsedSigungu);
     router.push(`/search?${params.toString()}`);
   };
 
