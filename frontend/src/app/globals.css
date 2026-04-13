@@ -29,6 +29,11 @@ html, body {
 ::-webkit-scrollbar-track { background: #111; }
 ::-webkit-scrollbar-thumb { background: #3b3b6b; border-radius: 4px; }
 
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
 @keyframes glow-pulse {
   0%, 100% { box-shadow: 0 0 20px rgba(99,102,241,0.3); }
   50%       { box-shadow: 0 0 50px rgba(99,102,241,0.6); }

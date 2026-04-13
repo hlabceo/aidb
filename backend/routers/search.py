@@ -425,7 +425,7 @@ async def reveal_items(
         })
 
     return {
-        "message": f"{len(new_ids)}건 열람 완료",
+        "message": f"{len(new_uuid_ids)}건 열람 완료",
         "points_used": required_points,
         "remaining_points": current_user.points,
         "revealed": revealed_data,
