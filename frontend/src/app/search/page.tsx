@@ -68,6 +68,7 @@ function SearchContent() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [showCharge, setShowCharge] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState("");
   const [newQuery, setNewQuery] = useState(q);
 
   const fetchResults = useCallback(async () => {
@@ -108,21 +109,35 @@ function SearchContent() {
     if (!user) { router.push("/auth/login"); return; }
     if (user.points < totalCost) { setShowCharge(true); return; }
     setDownloading(true);
+    setDownloadError("");
     try {
-      const { data } = await api.post("/search/excel",
+      const response = await api.post("/search/excel",
         { ids: Array.from(selected) },
         { responseType: "blob" }
       );
-      const url = URL.createObjectURL(new Blob([data]));
+      const blob = new Blob([response.data], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url; a.download = "AIDB_가게정보.xlsx"; a.click();
+      a.href = url;
+      a.download = "AIDB_가게정보.xlsx";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
       URL.revokeObjectURL(url);
       await refreshUser();
       await fetchResults();
       setSelected(new Set());
     } catch (e: unknown) {
-      const err = e as { response?: { status?: number } };
-      if (err.response?.status === 402) setShowCharge(true);
+      const err = e as { response?: { status?: number; data?: Blob } };
+      if (err.response?.status === 402) {
+        setShowCharge(true);
+      } else if (err.response?.status === 400) {
+        setDownloadError("선택된 항목이 없습니다. 다시 선택해주세요.");
+      } else {
+        setDownloadError("다운로드 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+      }
     } finally {
       setDownloading(false);
     }
@@ -335,6 +350,11 @@ function SearchContent() {
             <span style={{ fontSize: 13, color: "#a5b4fc", fontWeight: 600 }}>{selectedCount}건 선택</span>
             {totalCost > 0 && <span style={{ fontSize: 12, color: "#facc15", marginLeft: 6 }}>{totalCost.toLocaleString()}P 차감</span>}
           </div>
+          {downloadError && (
+            <div style={{ fontSize: 12, color: "#f87171", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 8, padding: "6px 12px" }}>
+              ⚠ {downloadError}
+            </div>
+          )}
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={() => setSelected(new Set())}
               style={{ fontSize: 12, color: "#6b7280", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", padding: "9px 14px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit" }}>
