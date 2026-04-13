@@ -218,9 +218,21 @@ async def search(
         )
 
     # ── 필터 조건 (인덱스 활용) ───────────────────────────────────
+    # 시도 약칭 → 전체명 매핑 (DB에 "경상북도"로 저장, 필터는 "경북"으로 전송)
+    SIDO_FULL = {
+        "서울": "서울특별시", "부산": "부산광역시", "대구": "대구광역시",
+        "인천": "인천광역시", "광주": "광주광역시", "대전": "대전광역시",
+        "울산": "울산광역시", "세종": "세종특별자치시", "경기": "경기도",
+        "강원": "강원도", "충북": "충청북도", "충남": "충청남도",
+        "전북": "전라북도", "전남": "전라남도", "경북": "경상북도",
+        "경남": "경상남도", "제주": "제주특별자치도",
+    }
     if sido and sido != "전국":
-        # sido 컬럼에 "서울" → "서울특별시" 포함 매칭 (LIKE 'sido%' → 인덱스 사용)
-        conditions.append(Business.sido.like(f"{sido}%"))
+        full_sido = SIDO_FULL.get(sido, sido)
+        # 약칭("경북") 또는 전체명("경상북도") 모두 매칭
+        conditions.append(
+            or_(Business.sido.like(f"{full_sido}%"), Business.sido.like(f"{sido}%"))
+        )
     if sigungu:
         conditions.append(Business.sigungu.like(f"{sigungu}%"))
     if uptae:
