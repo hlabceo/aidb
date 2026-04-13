@@ -58,6 +58,13 @@ function SearchContent() {
   const [sido, setSido] = useState(sidoParam);
   const [sigunguFilter, setSigunguFilter] = useState(sigunguParam);
   const [statusFilter, setStatusFilter] = useState("전체");
+
+  // URL 파라미터가 바뀌면 sido/sigungu state 동기화
+  useEffect(() => {
+    setSido(sidoParam);
+    setSigunguFilter(sigunguParam);
+    setStatusFilter("전체");
+  }, [sidoParam, sigunguParam, q]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [showCharge, setShowCharge] = useState(false);
   const [downloading, setDownloading] = useState(false);
