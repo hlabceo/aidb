@@ -1,4 +1,5 @@
 import io
+import json
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, Query, Request, HTTPException
 from fastapi.responses import StreamingResponse
@@ -7,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
+import redis.asyncio as aioredis
 
 from config import settings
 from database import get_db
@@ -103,7 +105,21 @@ def build_business_item(b: Business, revealed: bool, rank: int, free: bool = Fal
 # ── 통계 ──────────────────────────────────────────────────────
 @router.get("/stats")
 async def get_stats(db: AsyncSession = Depends(get_db)):
-    """메인화면용 데이터 통계"""
+    """메인화면용 데이터 통계 (Redis 10분 캐시)"""
+    CACHE_KEY = "stats:main"
+    CACHE_TTL = 600  # 10분
+
+    # Redis 캐시 확인
+    r = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
+    try:
+        cached = await r.get(CACHE_KEY)
+        if cached:
+            await r.aclose()
+            return json.loads(cached)
+    except Exception:
+        pass
+
+    # 캐시 없으면 DB 조회
     now = datetime.now()
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     monday_start = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
@@ -120,13 +136,23 @@ async def get_stats(db: AsyncSession = Depends(get_db)):
         select(func.count()).select_from(Business).where(Business.created_at >= today_start)
     )).scalar()
 
-    return {
+    result = {
         "total": total,
         "this_month": this_month,
         "this_week": this_week,
         "today": today_count,
         "updated_at": now.strftime("%Y-%m-%d"),
     }
+
+    # Redis에 저장
+    try:
+        await r.setex(CACHE_KEY, CACHE_TTL, json.dumps(result))
+    except Exception:
+        pass
+    finally:
+        await r.aclose()
+
+    return result
 
 
 # ── 검색 ──────────────────────────────────────────────────────
