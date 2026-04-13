@@ -189,22 +189,43 @@ async def search(
         except Exception:
             pass
 
-    # ── 동의어 사전 ────────────────────────────────────────────────
+    # ══════════════════════════════════════════════════════════════
+    # 업종 동의어 사전 (DB uptae_nm 실제값과 정확히 일치)
+    # DB 값: 미용업 / 수영장업 / 체력단련장업 / 당구장업 / 목욕장업 / 썰매장업 / 골프연습장업
+    # ══════════════════════════════════════════════════════════════
     SYNONYMS = {
-        "미용실": "미용업", "헤어샵": "미용업", "헤어": "미용업", "뷰티": "미용업",
-        "수영장": "수영장업",
-        "헬스장": "체력단련장업", "헬스": "체력단련장업", "피트니스": "체력단련장업", "gym": "체력단련장업",
-        "체육관": "체력단련장업", "스포츠센터": "체력단련장업", "휘트니스": "체력단련장업", "크로스핏": "체력단련장업",
-        "체력단련장": "체력단련장업",
-        "당구": "당구장업", "포켓볼": "당구장업", "billiard": "당구장업", "당구장": "당구장업",
-        "목욕탕": "목욕장업", "사우나": "목욕장업", "찜질방": "목욕장업", "목욕": "목욕장업",
-        "썰매": "썰매장업", "눈썰매": "썰매장업", "썰매장": "썰매장업",
-        "골프": "골프연습장업", "골프장": "골프연습장업", "스크린골프": "골프연습장업", "연습장": "골프연습장업",
-        "골프연습장": "골프연습장업",
+        # ── 미용업 ──
+        "미용": "미용업", "미용실": "미용업", "헤어샵": "미용업", "헤어": "미용업",
+        "뷰티": "미용업", "미용원": "미용업", "헤어살롱": "미용업", "살롱": "미용업",
+        "미용업": "미용업",
+        # ── 수영장업 ──
+        "수영": "수영장업", "수영장": "수영장업", "풀장": "수영장업", "수영장업": "수영장업",
+        # ── 체력단련장업 ──
+        "헬스": "체력단련장업", "헬스장": "체력단련장업", "헬스클럽": "체력단련장업",
+        "피트니스": "체력단련장업", "피트니스센터": "체력단련장업",
+        "gym": "체력단련장업", "짐": "체력단련장업",
+        "체육관": "체력단련장업", "스포츠센터": "체력단련장업",
+        "휘트니스": "체력단련장업", "크로스핏": "체력단련장업",
+        "체력단련장": "체력단련장업", "체력단련장업": "체력단련장업",
+        # ── 당구장업 ──
+        "당구": "당구장업", "당구장": "당구장업", "포켓볼": "당구장업",
+        "billiard": "당구장업", "당구업": "당구장업", "당구장업": "당구장업",
+        # ── 목욕장업 ──
+        "목욕": "목욕장업", "목욕탕": "목욕장업", "목욕장": "목욕장업",
+        "사우나": "목욕장업", "찜질방": "목욕장업", "찜질": "목욕장업",
+        "온천": "목욕장업", "스파": "목욕장업", "목욕장업": "목욕장업",
+        # ── 썰매장업 ──
+        "썰매": "썰매장업", "눈썰매": "썰매장업", "썰매장": "썰매장업", "썰매장업": "썰매장업",
+        # ── 골프연습장업 ──
+        "골프": "골프연습장업", "골프연습장": "골프연습장업", "골프장": "골프연습장업",
+        "스크린골프": "골프연습장업", "연습장": "골프연습장업", "골프연습": "골프연습장업",
+        "골프연습장업": "골프연습장업",
     }
-    UPTAE_NAMES = set(SYNONYMS.values())
+    UPTAE_NAMES = set(SYNONYMS.values())  # DB 업종명 실제값 집합
 
-    # ── 시도 약칭 → DB sido 값 매핑 ───────────────────────────────
+    # ══════════════════════════════════════════════════════════════
+    # 시도 매핑 사전
+    # ══════════════════════════════════════════════════════════════
     SIDO_FULL = {
         "서울": "서울특별시", "부산": "부산광역시", "대구": "대구광역시",
         "인천": "인천광역시", "광주": "광주광역시", "대전": "대전광역시",
@@ -213,44 +234,42 @@ async def search(
         "전북": "전라북도", "전남": "전라남도", "경북": "경상북도",
         "경남": "경상남도", "제주": "제주특별자치도",
     }
-    # 시도 전체명도 인식
-    SIDO_FULL_NAMES = set(SIDO_FULL.values()) | {
-        "경기도", "강원도", "충청북도", "충청남도", "전라북도", "전라남도",
-        "경상북도", "경상남도", "제주특별자치도", "세종특별자치시",
-    }
+    SIDO_ALL = set(SIDO_FULL.keys()) | set(SIDO_FULL.values())
 
-    # ── 멀티워드 쿼리 파싱 ─────────────────────────────────────────
-    # "김해 헬스장" → synonym="체력단련장", sigungu_hint="김해"
-    # "경남 수영장" → synonym="수영장업", sido_hint="경상남도"
+    # ══════════════════════════════════════════════════════════════
+    # 멀티워드 쿼리 파싱
+    # "기장 미용"  → uptae=미용업, sigungu_hint=기장
+    # "부산 기장 미용" → sido=부산광역시, sigungu_hint=기장, uptae=미용업
+    # "경남 수영장" → sido=경상남도, uptae=수영장업
+    # "강남구 헬스" → sigungu_hint=강남구, uptae=체력단련장업
+    # ══════════════════════════════════════════════════════════════
     q_parts = q.strip().split()
     synonym = None
-    sido_hint = None       # 쿼리에서 추출한 sido
-    sigungu_hint = None    # 쿼리에서 추출한 sigungu (부분명)
+    sido_hint = None
+    sigungu_hint = None
     text_parts = []
 
     for part in q_parts:
+        # 1순위: 업종 동의어
         if part in SYNONYMS:
             synonym = SYNONYMS[part]
         elif part in UPTAE_NAMES:
             synonym = part
-        elif not sido and not sido_hint and part in SIDO_FULL:
-            # "경남" → "경상남도"
-            sido_hint = SIDO_FULL[part]
-        elif not sido and not sido_hint and part in SIDO_FULL_NAMES:
-            # "경상남도" 직접 입력
-            sido_hint = part
+        # 2순위: 시도
+        elif not sido and not sido_hint and part in SIDO_ALL:
+            sido_hint = SIDO_FULL.get(part, part)
+        # 3순위: 시/군/구 접미사 있는 지명
         elif not sigungu and not sigungu_hint and part.endswith(("시", "군", "구")) and len(part) >= 3:
-            # "김해시", "강남구" 등 접미사 있는 경우
             sigungu_hint = part
+        # 4순위: 나머지 2글자 이상 단어 → 지명 힌트로 처리
         elif not sigungu and not sigungu_hint and len(part) >= 2:
-            # "김해", "강남" 등 접미사 없는 지명 → 부분 매칭으로 처리
             sigungu_hint = part
         else:
             text_parts.append(part)
 
     conditions = []
 
-    # ── 검색어 조건 ──────────────────────────────────────────────
+    # ── 업종 조건 ──────────────────────────────────────────────
     if synonym:
         conditions.append(Business.uptae_nm == synonym)
     else:
@@ -262,11 +281,11 @@ async def search(
             )
         )
 
-    # 쿼리에서 추출한 sido 힌트 적용 (필터 파라미터 없을 때)
+    # ── 시도 힌트 (쿼리 파싱) ─────────────────────────────────
     if sido_hint and not sido:
-        conditions.append(Business.sido.like(f"{sido_hint}%"))
+        conditions.append(Business.sido.ilike(f"{sido_hint}%"))
 
-    # 쿼리에서 추출한 sigungu 힌트 적용 (필터 파라미터 없을 때)
+    # ── 시군구 힌트 (쿼리 파싱) ───────────────────────────────
     if sigungu_hint and not sigungu:
         conditions.append(
             or_(
@@ -275,15 +294,14 @@ async def search(
             )
         )
 
-    # ── 필터 조건 (인덱스 활용) ───────────────────────────────────
-    # ── 필터 파라미터 sido 처리 ────────────────────────────────────
+    # ── 필터 파라미터 처리 (UI 필터 버튼) ────────────────────────
     if sido and sido != "전국":
         full_sido = SIDO_FULL.get(sido, sido)
         conditions.append(
             or_(Business.sido.like(f"{full_sido}%"), Business.sido.like(f"{sido}%"))
         )
     if sigungu:
-        conditions.append(Business.sigungu.like(f"{sigungu}%"))
+        conditions.append(Business.sigungu.ilike(f"%{sigungu}%"))
     if uptae:
         conditions.append(Business.uptae_nm == uptae)
     if status and status != "전체":
