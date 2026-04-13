@@ -189,7 +189,7 @@ async def search(
         except Exception:
             pass
 
-    # 동의어 처리 (검색어 → DB 업종명 매핑)
+    # ── 동의어 + 멀티워드 파싱 ────────────────────────────────────
     SYNONYMS = {
         "미용실": "미용업", "헤어샵": "미용업", "헤어": "미용업", "뷰티": "미용업",
         "수영장": "수영장업",
@@ -200,20 +200,47 @@ async def search(
         "썰매": "썰매장", "눈썰매": "썰매장",
         "골프": "골프연습장", "골프장": "골프연습장", "스크린골프": "골프연습장", "연습장": "골프연습장",
     }
-    synonym = SYNONYMS.get(q.strip())
+    # DB에 저장된 업종명 목록 (직접 매칭)
+    UPTAE_NAMES = set(SYNONYMS.values())
+
+    # 멀티워드 쿼리 파싱: "김해 수영장" → synonym="수영장업", location="김해"
+    q_parts = q.strip().split()
+    synonym = None
+    location_hint = None   # 시군구 힌트 (ex: "김해", "강남")
+    text_parts = []
+
+    for part in q_parts:
+        if part in SYNONYMS:
+            synonym = SYNONYMS[part]
+        elif part in UPTAE_NAMES:
+            synonym = part
+        elif not sigungu and len(part) >= 2:
+            # 시/군/구 suffix 또는 지명으로 추정되는 단어 → 위치 힌트
+            location_hint = part
+        else:
+            text_parts.append(part)
 
     conditions = []
 
     # ── 검색어 조건 ──────────────────────────────────────────────
     if synonym:
-        # 동의어 매핑된 경우: uptae_nm 정확 매치 (btree 인덱스 사용 → 빠름)
+        # 동의어 매핑: uptae_nm 정확 매치 (btree 인덱스 → 빠름)
         conditions.append(Business.uptae_nm == synonym)
+        # 위치 힌트가 있으면 sigungu/addr에서 추가 필터
+        if location_hint and not sigungu:
+            conditions.append(
+                or_(
+                    Business.sigungu.ilike(f"%{location_hint}%"),
+                    Business.addr.ilike(f"%{location_hint}%"),
+                )
+            )
     else:
-        # 일반 텍스트 검색: pg_trgm GIN 인덱스 사용
+        # 일반 텍스트 검색
+        text_q = " ".join(text_parts) if text_parts else q
         conditions.append(
             or_(
-                Business.bsn_nm.ilike(f"%{q}%"),
-                Business.uptae_nm.ilike(f"%{q}%"),
+                Business.bsn_nm.ilike(f"%{text_q}%"),
+                Business.uptae_nm.ilike(f"%{text_q}%"),
             )
         )
 
