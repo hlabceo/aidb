@@ -281,26 +281,28 @@ async def search(
             )
         )
 
-    # ── 시도 힌트 (쿼리 파싱) ─────────────────────────────────
-    if sido_hint and not sido:
+    # ── 시도 조건: 검색어 > UI 필터 (검색어에 지역 명시 시 우선 적용) ──
+    if sido_hint:
+        # 검색어에서 지역 추출된 경우 → UI 필터 무시하고 검색어 지역 우선
         conditions.append(Business.sido.ilike(f"{sido_hint}%"))
+    elif sido and sido != "전국":
+        # UI 필터만 있는 경우
+        full_sido = SIDO_FULL.get(sido, sido)
+        conditions.append(
+            or_(Business.sido.like(f"{full_sido}%"), Business.sido.like(f"{sido}%"))
+        )
 
-    # ── 시군구 힌트 (쿼리 파싱) ───────────────────────────────
-    if sigungu_hint and not sigungu:
+    # ── 시군구 조건: 검색어 > UI 필터 ───────────────────────────
+    if sigungu_hint:
+        # 검색어에서 시군구 추출된 경우 → UI 필터 무시하고 검색어 지역 우선
         conditions.append(
             or_(
                 Business.sigungu.ilike(f"%{sigungu_hint}%"),
                 Business.addr.ilike(f"%{sigungu_hint}%"),
             )
         )
-
-    # ── 필터 파라미터 처리 (UI 필터 버튼) ────────────────────────
-    if sido and sido != "전국":
-        full_sido = SIDO_FULL.get(sido, sido)
-        conditions.append(
-            or_(Business.sido.like(f"{full_sido}%"), Business.sido.like(f"{sido}%"))
-        )
-    if sigungu:
+    elif sigungu:
+        # UI 필터만 있는 경우
         conditions.append(Business.sigungu.ilike(f"%{sigungu}%"))
     if uptae:
         conditions.append(Business.uptae_nm == uptae)
