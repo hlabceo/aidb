@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     DATA_GO_KR_API_KEY: str = ""
     DATA_GO_KR_BASE_URL: str = "https://apis.data.go.kr/1741000"
 
+    # SMS API (설정 시 debug_code 응답에서 제거됨)
+    SMS_API_KEY: str = ""
+
     # 소셜 로그인
     NAVER_CLIENT_ID: str = ""
     NAVER_CLIENT_SECRET: str = ""

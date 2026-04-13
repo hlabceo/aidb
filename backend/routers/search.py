@@ -325,8 +325,17 @@ async def search(
     stmt = stmt.order_by(Business.bsn_nm).offset((page - 1) * size).limit(size)
     rows = (await db.execute(stmt)).scalars().all()
 
-    # 필터 없는 1페이지일 때만 상위 3건 FREE (지역/상태 필터 적용 시 FREE 없음)
-    is_unfiltered = (not sido or sido == "전국") and (not status or status == "전체") and (not sigungu) and (not uptae) and page == 1
+    # 필터 없는 1페이지일 때만 상위 3건 FREE
+    # - URL 파라미터 필터(sido/sigungu/status/uptae) 또는 검색어 파싱 지역(sido_hint/sigungu_hint) 적용 시 FREE 없음
+    is_unfiltered = (
+        (not sido or sido == "전국")
+        and (not status or status == "전체")
+        and (not sigungu)
+        and (not uptae)
+        and (not sido_hint)
+        and (not sigungu_hint)
+        and page == 1
+    )
 
     items = []
     for i, b in enumerate(rows):
@@ -354,24 +363,31 @@ async def reveal_items(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    import uuid as _uuid
     ids = body.get("ids", [])
     if not ids:
         return {"message": "선택된 항목이 없습니다", "revealed": []}
 
+    # string → UUID 변환 (asyncpg 타입 오류 방지)
+    try:
+        uuid_ids = [_uuid.UUID(i) for i in ids]
+    except Exception:
+        raise HTTPException(status_code=400, detail="잘못된 ID 형식입니다")
+
     vl = await db.execute(
         select(ViewLog.business_id).where(
             ViewLog.user_id == current_user.id,
-            ViewLog.business_id.in_(ids),
+            ViewLog.business_id.in_(uuid_ids),
         )
     )
     already_viewed = {str(row[0]) for row in vl.fetchall()}
-    new_ids = [i for i in ids if i not in already_viewed]
+    new_uuid_ids = [uid for uid in uuid_ids if str(uid) not in already_viewed]
 
-    if not new_ids:
+    if not new_uuid_ids:
         return {"message": "이미 열람한 항목입니다", "revealed": list(already_viewed)}
 
-    # 가게별 포인트 계산 (전화번호 없으면 5P)
-    new_bizs = (await db.execute(select(Business).where(Business.id.in_(new_ids)))).scalars().all()
+    # 가게별 포인트 계산 (전화번호 없으면 15P)
+    new_bizs = (await db.execute(select(Business).where(Business.id.in_(new_uuid_ids)))).scalars().all()
     required_points = sum(get_point_cost(b) for b in new_bizs)
 
     if current_user.points < required_points:
@@ -386,7 +402,7 @@ async def reveal_items(
         type="use",
         amount=-required_points,
         balance=current_user.points,
-        description=f"{len(new_ids)}건 가게 정보 열람",
+        description=f"{len(new_uuid_ids)}건 가게 정보 열람",
     ))
 
     for b in new_bizs:

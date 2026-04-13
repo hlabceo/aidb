@@ -138,10 +138,12 @@ async def send_sms(body: SmsRequest):
     # import httpx
     # await httpx.AsyncClient().post(SMS_API_URL, json={...})
 
-    return {
-        "message": "인증번호가 발송되었습니다 (5분 이내 입력)",
-        "debug_code": code,  # ← API 키 연동 후 이 줄 삭제
-    }
+    # debug_code는 개발환경(SMS_API_KEY 미설정)에서만 반환
+    # SMS API 연동 후에는 settings.SMS_API_KEY 설정 시 자동으로 code 미반환
+    response: dict = {"message": "인증번호가 발송되었습니다 (5분 이내 입력)"}
+    if not getattr(settings, "SMS_API_KEY", None):
+        response["debug_code"] = code  # SMS API 연동 전 임시 — 운영 시 settings.SMS_API_KEY 설정하면 자동 제거
+    return response
 
 
 @router.post("/sms/verify")

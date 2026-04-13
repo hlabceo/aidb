@@ -23,15 +23,16 @@ from config import settings
 from models.models import Business
 
 # ── 수집 가능한 업종 목록 ──────────────────────────────────────
-# 형식: "서비스키": ("업종표시명", "API 엔드포인트 경로")
+# 형식: "서비스키": ("업종표시명(DB uptae_nm 실제값과 일치)", "API 엔드포인트 경로")
+# DB uptae_nm 실제값: 미용업 / 수영장업 / 체력단련장업 / 당구장업 / 목욕장업 / 썰매장업 / 골프연습장업
 SERVICE_MAP = {
-    "swimming_pools": ("수영장업",   "https://apis.data.go.kr/1741000/swimming_pools/info"),
-    "beauty_salons":  ("미용업",     "https://apis.data.go.kr/1741000/beauty_salons/info"),
-    "fitness_centers":("체력단련장", "https://apis.data.go.kr/1741000/fitness_centers/info"),
-    "billiard_halls": ("당구장",    "https://apis.data.go.kr/1741000/billiard_halls/info"),
-    "public_baths":         ("목욕장업",    "https://apis.data.go.kr/1741000/public_baths/info"),
-    "sledding":             ("썰매장",     "https://apis.data.go.kr/1741000/sledding/info"),
-    "golf_practice_ranges": ("골프연습장", "https://apis.data.go.kr/1741000/golf_practice_ranges/info"),
+    "swimming_pools":       ("수영장업",      "https://apis.data.go.kr/1741000/swimming_pools/info"),
+    "beauty_salons":        ("미용업",        "https://apis.data.go.kr/1741000/beauty_salons/info"),
+    "fitness_centers":      ("체력단련장업",   "https://apis.data.go.kr/1741000/fitness_centers/info"),
+    "billiard_halls":       ("당구장업",      "https://apis.data.go.kr/1741000/billiard_halls/info"),
+    "public_baths":         ("목욕장업",      "https://apis.data.go.kr/1741000/public_baths/info"),
+    "sledding":             ("썰매장업",      "https://apis.data.go.kr/1741000/sledding/info"),
+    "golf_practice_ranges": ("골프연습장업",  "https://apis.data.go.kr/1741000/golf_practice_ranges/info"),
     # 아래 API들은 data.go.kr에서 추가 승인 후 주석 해제
     # "general_restaurants": ("일반음식점", "https://apis.data.go.kr/1741000/general_restaurants/info"),
     # "pharmacies":          ("약국",       "https://apis.data.go.kr/1741000/pharmacies/info"),
